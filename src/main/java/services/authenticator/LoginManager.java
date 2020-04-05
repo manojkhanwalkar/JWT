@@ -12,19 +12,30 @@ public class LoginManager {
 
     UserSessionCache cache = UserSessionCache.getInstance();
 
+    UserManager manager = UserManager.getInstance();
+
     public LoginResponse login(LoginRequest request) {
 
         // validate userid and password against UserManager
         // if valid generate a session id , else send an error
 
-        String sessionId = UUID.randomUUID().toString();
+        if (manager.validate(request.getUserid(), request.getPassword())) {
 
-        cache.put(request.getUserid(),sessionId);
+            String sessionId = UUID.randomUUID().toString();
 
-        LoginResponse response = new LoginResponse(sessionId);
+            cache.put(request.getUserid(), sessionId);
+
+            LoginResponse response = new LoginResponse(sessionId);
 
 
-        return response;
+            return response;
+        }
+        else
+        {
+            LoginResponse response = new LoginResponse();
+            response.setErrorMessage("User login failed");
+            return response;
+        }
 
     }
 

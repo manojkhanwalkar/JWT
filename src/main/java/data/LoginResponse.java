@@ -30,6 +30,7 @@ public class LoginResponse {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+        this.status  = Status.failed;
     }
 
     public Status getStatus() {
