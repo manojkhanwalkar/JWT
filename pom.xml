@@ -58,11 +58,7 @@
             <version>2.3.0</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.github.Cloudmersive</groupId>
-            <artifactId>Cloudmersive.APIClient.Java</artifactId>
-            <version>v2.75</version>
-        </dependency>
+
 
 
 

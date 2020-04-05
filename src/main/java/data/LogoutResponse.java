@@ -2,7 +2,7 @@ package data;
 
 public class LogoutResponse {
 
-    enum Status { sucess , failed};
+    public enum Status { sucess , failed};
 
 
 
