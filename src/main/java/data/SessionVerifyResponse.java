@@ -12,6 +12,21 @@ public class SessionVerifyResponse {
         this.sessionId = sessionId;
     }
 
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
 
     public SessionVerifyResponse() {
     }

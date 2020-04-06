@@ -1,7 +1,8 @@
 package client;
 
-import data.LoginRequest;
-import data.LoginResponse;
+import com.amazonaws.services.opsworks.model.App;
+import data.*;
+import util.Connection;
 import util.JSONUtil;
 
 public class JWTTester {
@@ -21,8 +22,25 @@ public class JWTTester {
 
         String str1 = login.sendSimple(str,"login");
 
+        LoginResponse response = (LoginResponse)JSONUtil.fromJSON(str1,LoginResponse.class);
+
         System.out.println(str1);
 
+        TokenRequest tokenRequest = new TokenRequest(response.getSessionId());
+
+
+
+        TokenResponse tokenResponse = (TokenResponse)JSONUtil.fromJSON(auth.sendSimple(JSONUtil.toJSON(tokenRequest),"token"),TokenResponse.class);
+
+        System.out.println(tokenResponse);
+
+        AppRequest appRequest = new AppRequest(tokenResponse.getJwt(),"Dummy service request");
+
+        String str2 = app.sendSimple(JSONUtil.toJSON(appRequest),"service");
+
+        AppResponse appResponse = (AppResponse) JSONUtil.fromJSON(str2,AppResponse.class);
+
+        System.out.println(appResponse);
 
     }
 

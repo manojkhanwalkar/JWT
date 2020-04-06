@@ -1,16 +1,19 @@
 package services.authorizer;
 
 
+import data.SessionVerifyRequest;
+import data.SessionVerifyResponse;
+import util.Connection;
 import com.codahale.metrics.annotation.Timed;
-import data.AppRequest;
-import data.AppResponse;
 import data.TokenRequest;
 import data.TokenResponse;
+import util.JSONUtil;
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import java.util.UUID;
 
 
 @Path("/")
@@ -42,10 +45,34 @@ public class AuthResource {
     @Produces(MediaType.APPLICATION_JSON)
     public TokenResponse claims(TokenRequest request) {
 
+        TokenResponse response=null;
 
-        // validate sessionid and if valid generate jwt
-     //   return loginManager.logout(request);
-        TokenResponse response = new TokenResponse();
+        Connection login = new Connection("https://localhost:8480/");
+
+        SessionVerifyRequest verifyRequest = new SessionVerifyRequest(request.getSessionId());
+
+        try {
+            String str1 = login.sendSimple(JSONUtil.toJSON(verifyRequest),"verify");
+
+            SessionVerifyResponse sessionVerifyResponse = (SessionVerifyResponse)JSONUtil.fromJSON(str1,SessionVerifyResponse.class);
+
+
+            if (sessionVerifyResponse.getStatus()== SessionVerifyResponse.Status.Valid)
+            {
+                response  = new TokenResponse(TokenResponse.Status.Valid, UUID.randomUUID().toString());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (response==null)
+        {
+            response =  new TokenResponse(TokenResponse.Status.Invalid, UUID.randomUUID().toString());
+        }
+
+
+
 
         return response;
 

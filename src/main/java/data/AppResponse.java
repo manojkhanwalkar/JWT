@@ -32,4 +32,13 @@ public class AppResponse {
         this.status = status;
         this.dumyecho = dumyecho;
     }
+
+
+    @Override
+    public String toString() {
+        return "AppResponse{" +
+                "status=" + status +
+                ", dumyecho='" + dumyecho + '\'' +
+                '}';
+    }
 }
