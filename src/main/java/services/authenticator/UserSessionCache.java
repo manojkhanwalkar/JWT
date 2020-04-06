@@ -1,9 +1,8 @@
 package services.authenticator;
 
-import java.util.Objects;
-import java.util.PriorityQueue;
-import java.util.Random;
-import java.util.UUID;
+import io.netty.util.internal.ConcurrentSet;
+
+import java.util.*;
 import java.util.concurrent.*;
 
 public class UserSessionCache {
@@ -14,6 +13,10 @@ public class UserSessionCache {
     PriorityQueue<Tuple> queue = new PriorityQueue<>();
 
     ScheduledExecutorService service = new ScheduledThreadPoolExecutor(1);
+
+    public synchronized boolean contains(String sessionId) {
+         return currentSessions.contains(sessionId);
+    }
 
 
     static class Holder {
@@ -84,7 +87,7 @@ public class UserSessionCache {
 
                 if (curr - remove.time > SESSIONTIME) {
 
-                    evict(remove.userid);
+                    evict(remove);
                     queue.remove();
                 }
                 else
@@ -103,6 +106,8 @@ public class UserSessionCache {
 
     private ConcurrentMap<String,Tuple> usersession = new ConcurrentHashMap<>();
 
+    private Set<String> currentSessions = new HashSet<>();
+
     public synchronized void put(String userid, String sessionId)
     {
         long time = System.nanoTime();
@@ -110,6 +115,8 @@ public class UserSessionCache {
         Tuple tuple = new Tuple(sessionId,time,userid);
 
         usersession.put(userid,tuple);
+
+        currentSessions.add(sessionId);
 
         queue.add(tuple);
 
@@ -130,16 +137,21 @@ public class UserSessionCache {
 
     }
 
-    public void remove(String userid)
+    public synchronized void remove(String userid)
     {
-        usersession.remove(userid);
+        Tuple tuple = usersession.remove(userid);
+        if (tuple!=null)
+        {
+            currentSessions.remove(tuple.sessionId);
+        }
+
     }
 
 
-    void evict(String userid)
+    synchronized void evict(Tuple tuple)
     {
-        System.out.println("Session expired for user  " + userid);
-        usersession.remove(userid);
+        System.out.println("Session expired for user  " + tuple.userid);
+        remove(tuple.userid);
 
     }
 

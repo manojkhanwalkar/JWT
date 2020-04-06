@@ -62,6 +62,21 @@ public class LoginResource {
     }
 
 
+    @POST
+    @Timed
+    @Path("/verify")
+    @Produces(MediaType.APPLICATION_JSON)
+    public SessionVerifyResponse claims(SessionVerifyRequest request) {
+
+
+        return loginManager.verify(request);
+
+
+
+    }
+
+
+
 
 
 

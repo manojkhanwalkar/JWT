@@ -1,9 +1,6 @@
 package services.authenticator;
 
-import data.LoginRequest;
-import data.LoginResponse;
-import data.LogoutRequest;
-import data.LogoutResponse;
+import data.*;
 
 import java.util.UUID;
 
@@ -47,5 +44,40 @@ public class LoginManager {
 
         cache.remove(request.getUserid());
         return new LogoutResponse(LogoutResponse.Status.sucess);
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        LoginManager loginManager = new LoginManager();
+
+        LoginRequest request = new LoginRequest("user1","password1");
+
+        LoginResponse response = loginManager.login(request);
+
+        System.out.println(response);
+
+        if (response.getStatus()== LoginResponse.Status.sucess) {
+
+            SessionVerifyRequest vrequest = new SessionVerifyRequest(response.getSessionId());
+
+            SessionVerifyResponse vresponse = loginManager.verify(vrequest);
+
+            System.out.println(vresponse);
+
+            Thread.sleep(10000);
+
+            vresponse = loginManager.verify(vrequest);
+
+            System.out.println(vresponse);
+
+
+        }
+    }
+
+    public SessionVerifyResponse verify(SessionVerifyRequest request) {
+
+            boolean valid = cache.contains(request.getSessionId());
+            SessionVerifyResponse response = new SessionVerifyResponse(valid? SessionVerifyResponse.Status.Valid: SessionVerifyResponse.Status.Invalid,request.getSessionId());
+            return response;
     }
 }

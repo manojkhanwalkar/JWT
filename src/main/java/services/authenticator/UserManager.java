@@ -1,5 +1,7 @@
 package services.authenticator;
 
+import dynamodb.UserCreator;
+
 public class UserManager {
 
     static class Holder {
@@ -17,11 +19,13 @@ public class UserManager {
         return Holder.manager;
     }
 
+    UserCreator creator = new UserCreator();
+
 
     public boolean validate(String userId,String password)
     {
-        //TODO - add Dynamodb table
+        return creator.validate(userId,password);
 
-        return true;
+
     }
 }

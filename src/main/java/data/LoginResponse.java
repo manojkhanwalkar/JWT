@@ -2,7 +2,7 @@ package data;
 
 public class LoginResponse {
 
-    enum Status { sucess , failed};
+    public enum Status { sucess , failed};
 
     String sessionId ;
 
@@ -47,4 +47,12 @@ public class LoginResponse {
     }
 
 
+    @Override
+    public String toString() {
+        return "LoginResponse{" +
+                "sessionId='" + sessionId + '\'' +
+                ", errorMessage='" + errorMessage + '\'' +
+                ", status=" + status +
+                '}';
+    }
 }
