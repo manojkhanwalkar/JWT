@@ -4,6 +4,8 @@ package services.app;
 import com.codahale.metrics.annotation.Timed;
 import data.*;
 import services.authenticator.LoginManager;
+import util.Connection;
+import util.JSONUtil;
 import util.JWSVerifyUtil;
 
 import javax.ws.rs.POST;
@@ -21,7 +23,7 @@ public class AppResource {
 
 
 
-JWSVerifyUtil jwsVerifyUtil = new JWSVerifyUtil();
+JWSVerifyUtil jwsVerifyUtil; //  = new JWSVerifyUtil();
 
 
 
@@ -30,6 +32,25 @@ JWSVerifyUtil jwsVerifyUtil = new JWSVerifyUtil();
         this.defaultName = defaultName;
 
 
+        initializeJWS();
+
+    }
+
+
+    private void initializeJWS()
+    {
+
+        try {
+            Connection auth = new Connection("https://localhost:8280/");
+
+            String certJson = auth.get("certificate");
+
+            String cert = (String)JSONUtil.fromJSON(certJson,String.class);
+
+            jwsVerifyUtil = new JWSVerifyUtil(cert);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
 
     }

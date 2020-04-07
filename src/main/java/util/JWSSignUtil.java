@@ -16,12 +16,14 @@ public class JWSSignUtil {
 
     private static final String SPEC = "secp256k1";
     private static final String ALGO = "SHA256withECDSA";
-  //  private final String certificateFile;
-  //  private final String privateKeyFile;
+
+    String certFile = "/home/manoj/IdeaProjects/KryptIdEcoSysDemo/src/main/resources/clientcert.pem";
 
     private final PrivateKey privateKey;
 
-    //private final String publicKeyStr ;
+    private final PublicKey publicKey;
+
+    private final String publicKeyStr ;
 
     String privateFile = "/home/manoj/IdeaProjects/KryptIdEcoSysDemo/src/main/resources/clientkey.der";
 
@@ -33,8 +35,16 @@ public class JWSSignUtil {
     {
 
         this.privateKey =   CryptUtil.getPrivateKeyDerFromFile(privateFile,"EC");
+        this.publicKey = CryptUtil.getPublicKeyFromCertFile(certFile,"EC");
+
+        publicKeyStr = CryptUtil.convertPublicKeyToString(publicKey);
+
+    }
 
 
+    public String getPublicKey()
+    {
+        return publicKeyStr;
     }
 
 

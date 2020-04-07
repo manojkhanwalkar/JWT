@@ -36,6 +36,14 @@ public class JWSVerifyUtil {
     }
 
 
+    public JWSVerifyUtil(String cert)
+    {
+
+        publicKey = CryptUtil.convertStringtoPublicKey(cert,"EC");
+
+    }
+
+
 
 
 
