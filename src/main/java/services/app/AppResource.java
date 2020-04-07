@@ -4,6 +4,7 @@ package services.app;
 import com.codahale.metrics.annotation.Timed;
 import data.*;
 import services.authenticator.LoginManager;
+import util.JWSVerifyUtil;
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -20,7 +21,7 @@ public class AppResource {
 
 
 
-
+JWSVerifyUtil jwsVerifyUtil = new JWSVerifyUtil();
 
 
 
@@ -41,10 +42,17 @@ public class AppResource {
     @Produces(MediaType.APPLICATION_JSON)
     public AppResponse claims(AppRequest request) {
 
+        AppResponse response=null;
 
-        // validate jwt and if valid , process the service request
-     //   return loginManager.logout(request);
-        AppResponse response = new AppResponse(AppResponse.Status.Valid,request.getDummy().toUpperCase());
+        if (jwsVerifyUtil.verifyJWS(request.getToken())) {
+            // validate jwt and if valid , process the service request
+            //   return loginManager.logout(request);
+            response = new AppResponse(AppResponse.Status.Valid, request.getDummy().toUpperCase());
+        }
+        else
+        {
+            response = new AppResponse(AppResponse.Status.Invalid,"");
+        }
 
         return response;
 

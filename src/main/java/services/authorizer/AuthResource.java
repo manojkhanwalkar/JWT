@@ -8,6 +8,7 @@ import com.codahale.metrics.annotation.Timed;
 import data.TokenRequest;
 import data.TokenResponse;
 import util.JSONUtil;
+import util.JWSSignUtil;
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -26,7 +27,7 @@ public class AuthResource {
 
 
 
-
+    JWSSignUtil jwsSignUtil = new JWSSignUtil();
 
     public AuthResource(String template, String defaultName) {
         this.template = template;
@@ -59,7 +60,7 @@ public class AuthResource {
 
             if (sessionVerifyResponse.getStatus()== SessionVerifyResponse.Status.Valid)
             {
-                response  = new TokenResponse(TokenResponse.Status.Valid, UUID.randomUUID().toString());
+                response  = new TokenResponse(TokenResponse.Status.Valid, jwsSignUtil.jwsSign("Dummy Token"));
             }
 
         } catch (Exception e) {
