@@ -11,7 +11,9 @@ public class ECDHETester {
 
         Connection  app = new Connection("https://localhost:8380/");
 
-        app.esend("Hello World","eservice");
+        String str = app.esend("Hello World","eservice");
+
+        System.out.println(str);
 
 
 

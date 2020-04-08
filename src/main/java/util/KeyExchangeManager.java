@@ -1,6 +1,7 @@
 package util;
 
 
+import data.EncryptedMessage;
 import data.KeyExchangeRequest;
 import data.KeyExchangeResponse;
 
@@ -18,7 +19,7 @@ public class KeyExchangeManager {
 
 
 
-    SessionKeyCache sessionKeyCache = new SessionKeyCache();
+    static SessionKeyCache sessionKeyCache = new SessionKeyCache();
 
     PublicKey publicKey;
     PrivateKey privateKey;
@@ -94,17 +95,17 @@ public class KeyExchangeManager {
     }
 
 
-  /*  public String decryptRequest(EncryptedMessage request)
+    public static String decryptRequest(EncryptedMessage request)
     {
-        DHUtil util = sessionKeyCache.get(request.getClientId());
+        DHUtil util = sessionKeyCache.get(request.getSessionId());
         return decrypt(request,util);
     }
 
 
 
-    public EncryptedMessage encryptResponse(String response, EncryptedMessage request)
+    public static EncryptedMessage encryptResponse(String response, EncryptedMessage request)
     {
-        DHUtil util = sessionKeyCache.get(request.getClientId());
+        DHUtil util = sessionKeyCache.use(request.getSessionId());
 
         return encrypt(response,util);
 
@@ -113,7 +114,7 @@ public class KeyExchangeManager {
 
 
 
-    private String decrypt(EncryptedMessage request, DHUtil util)
+    private static String decrypt(EncryptedMessage request, DHUtil util)
     {
         return util.decrypt(request.getMessage(),request.getIv());
 
@@ -124,7 +125,7 @@ public class KeyExchangeManager {
 
 
 
-    private EncryptedMessage encrypt(String str, DHUtil util)
+    private static EncryptedMessage encrypt(String str, DHUtil util)
     {
         byte[] iv = new byte[128/8];
         secureRandom.nextBytes(iv);
@@ -137,7 +138,7 @@ public class KeyExchangeManager {
     }
 
 
-*/
+
 
 
 

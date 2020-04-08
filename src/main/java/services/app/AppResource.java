@@ -99,51 +99,28 @@ JWSVerifyUtil jwsVerifyUtil; //  = new JWSVerifyUtil();
 
 
 
- /*   @POST
+   @POST
     @Timed
     @Path("/eservice")
     @Produces(MediaType.APPLICATION_JSON)
     public EncryptedMessage verify(EncryptedMessage request) {
 
-       keyExchangeManager.verify(request);
-
-
-        String requestStr = keyExchangeManager.decryptRequest(request);
-
-
-        // Encrypted Verified claim to be processed here .
-        EncryptedVerifiedClaim encryptedVerifiedClaim = (EncryptedVerifiedClaim) JSONUtil.fromJSON(requestStr,EncryptedVerifiedClaim.class);
-
-        VerifiedClaim claim = convert(encryptedVerifiedClaim,rsaKeyHolder.getPrivateKey());
-
-        isValidClaim(claim);
-
-        System.out.println(claim);
-
-        CombinedCreditScore combinedCreditScore = new CombinedCreditScore();
-
-
-        CreditManagerFactory creditManagerFactory = CreditManagerFactory.getInstance();
-
-        creditManagerFactory.get().parallelStream().forEach(creditManager -> {
-
-            CreditScore creditScore = creditManager.getCreditScore();
-            creditScore.setBureau(creditManager.bureau);
-            combinedCreditScore.addScore(creditScore);
-
-        });
 
 
 
-        String responseStr = JSONUtil.toJSON(combinedCreditScore);
-        EncryptedMessage response =  keyExchangeManager.encryptResponse(responseStr,request);
-        keyExchangeManager.sign(response);
+        String requestStr = KeyExchangeManager.decryptRequest(request);
+
+
+
+        String responseStr = JSONUtil.toJSON(requestStr.toUpperCase());
+        EncryptedMessage response =  KeyExchangeManager.encryptResponse(responseStr,request);
+
         return response;
 
 
     }
 
-*/
+
 
 
 

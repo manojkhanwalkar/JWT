@@ -20,7 +20,13 @@ public class SessionKeyCache {
     }
 
 
-    // one time use only
+    public DHUtil get(String sessionId)
+    {
+        return cache.get(sessionId);
+    }
+
+
+    // remove once response has been encrypted
 
     public DHUtil use(String sessionId)
     {

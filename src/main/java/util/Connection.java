@@ -2,6 +2,7 @@ package util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
+import data.EncryptedMessage;
 import data.KeyExchangeRequest;
 import data.KeyExchangeResponse;
 
@@ -95,8 +96,10 @@ public class Connection {
 
     }
 
+    static SecureRandom secureRandom = new SecureRandom();
 
-    public void esend(String message, String eservice) throws Exception{
+
+    public String esend(String message, String eservice) throws Exception{
 
 
 
@@ -122,6 +125,30 @@ public class Connection {
                 util.setReceiverPublicKey(pubKey);
 
                 // key exchange completed , now send the encrypted message and get encrypted response .
+
+
+        byte[] iv = new byte[128/8];
+        secureRandom.nextBytes(iv);
+
+        String encMessage = util.encrypt(message,iv);
+
+
+        EncryptedMessage encryptedMessage = new EncryptedMessage();
+        encryptedMessage.setMessage(encMessage);
+        encryptedMessage.setSessionId(response.getSessionId());
+        encryptedMessage.setIv(Base64.getEncoder().encodeToString(iv));
+
+
+
+        String encryptedResponseStr = post(JSONUtil.toJSON(encryptedMessage),eservice);
+
+        encryptedMessage = (EncryptedMessage)JSONUtil.fromJSON(encryptedResponseStr,EncryptedMessage.class);
+
+       ;
+
+        String decMessage = util.decrypt(encryptedMessage.getMessage(),encryptedMessage.getIv());
+
+        return decMessage;
 
     }
 }
