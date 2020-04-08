@@ -2,6 +2,8 @@ package util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
+import data.KeyExchangeRequest;
+import data.KeyExchangeResponse;
 
 
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.*;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.time.Duration;
 import java.util.Base64;
@@ -25,7 +28,7 @@ public class Connection {
     HttpClient client ;
 
 
-
+    private static final String SPEC = "secp256k1";
 
 
     private void initConnectionProps()
@@ -93,7 +96,32 @@ public class Connection {
     }
 
 
+    public void esend(String message, String eservice) throws Exception{
 
 
 
+            ECGenParameterSpec ecSpec = new ECGenParameterSpec(SPEC);
+            KeyPairGenerator g = KeyPairGenerator.getInstance("EC");
+            g.initialize(ecSpec, new SecureRandom());
+            KeyPair keypair = g.generateKeyPair();
+
+            PublicKey publicKey = keypair.getPublic();
+            PrivateKey privateKey = keypair.getPrivate();
+
+
+            KeyExchangeRequest request = new KeyExchangeRequest(CryptUtil.convertPublicKeyToString(publicKey));
+
+            String str = post(JSONUtil.toJSON(request),"keyexchange");
+
+            KeyExchangeResponse response = (KeyExchangeResponse) JSONUtil.fromJSON(str,KeyExchangeResponse.class);
+
+              PublicKey pubKey = CryptUtil.convertStringtoPublicKey(response.getPublicKey(),"EC");
+
+              DHUtil util = new DHUtil(publicKey,privateKey);
+
+                util.setReceiverPublicKey(pubKey);
+
+                // key exchange completed , now send the encrypted message and get encrypted response .
+
+    }
 }

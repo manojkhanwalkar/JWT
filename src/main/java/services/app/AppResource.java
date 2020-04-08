@@ -7,6 +7,7 @@ import services.authenticator.LoginManager;
 import util.Connection;
 import util.JSONUtil;
 import util.JWSVerifyUtil;
+import util.KeyExchangeManager;
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -81,36 +82,72 @@ JWSVerifyUtil jwsVerifyUtil; //  = new JWSVerifyUtil();
     }
 
 
-   /* @POST
+
+
+    @POST
     @Timed
-    @Path("/verify")
+    @Path("/keyexchange")
     @Produces(MediaType.APPLICATION_JSON)
-    public SessionVerifyResponse claims(SessionVerifyRequest request) {
+    public KeyExchangeResponse exchange(KeyExchangeRequest request) {
 
 
-        return loginManager.verify(request);
+        KeyExchangeManager keyExchangeManager = new KeyExchangeManager();
+        return keyExchangeManager.processExchange(request);
 
 
-
-    }*/
-
-
-
+    }
 
 
 
  /*   @POST
     @Timed
-    @Path("/login")
+    @Path("/eservice")
     @Produces(MediaType.APPLICATION_JSON)
-    public LoginResponse claims(LoginRequest request) {
+    public EncryptedMessage verify(EncryptedMessage request) {
+
+       keyExchangeManager.verify(request);
 
 
-        return loginManager.login(request);
+        String requestStr = keyExchangeManager.decryptRequest(request);
+
+
+        // Encrypted Verified claim to be processed here .
+        EncryptedVerifiedClaim encryptedVerifiedClaim = (EncryptedVerifiedClaim) JSONUtil.fromJSON(requestStr,EncryptedVerifiedClaim.class);
+
+        VerifiedClaim claim = convert(encryptedVerifiedClaim,rsaKeyHolder.getPrivateKey());
+
+        isValidClaim(claim);
+
+        System.out.println(claim);
+
+        CombinedCreditScore combinedCreditScore = new CombinedCreditScore();
+
+
+        CreditManagerFactory creditManagerFactory = CreditManagerFactory.getInstance();
+
+        creditManagerFactory.get().parallelStream().forEach(creditManager -> {
+
+            CreditScore creditScore = creditManager.getCreditScore();
+            creditScore.setBureau(creditManager.bureau);
+            combinedCreditScore.addScore(creditScore);
+
+        });
 
 
 
-    }*/
+        String responseStr = JSONUtil.toJSON(combinedCreditScore);
+        EncryptedMessage response =  keyExchangeManager.encryptResponse(responseStr,request);
+        keyExchangeManager.sign(response);
+        return response;
+
+
+    }
+
+*/
+
+
+
+
 
 
 
