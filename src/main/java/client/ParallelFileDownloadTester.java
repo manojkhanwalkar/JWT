@@ -113,7 +113,7 @@ public class ParallelFileDownloadTester {
        // System.out.println(checkSum);
 
 
-        System.out.println("Check match is " + checkSum.equals(metaResponse.getCheckSum()));
+        System.out.println("Check sum match is " + checkSum.equals(metaResponse.getCheckSum()));
 
         service.shutdownNow();
 
