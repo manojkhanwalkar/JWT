@@ -10,7 +10,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import java.io.File;
+import java.io.*;
 
 
 @Path("/")
@@ -101,6 +101,47 @@ JWSVerifyUtil jwsVerifyUtil; //  = new JWSVerifyUtil();
 
 
     }
+
+
+    @POST
+    @Timed
+    @Path("/chunk")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ChunkResponse exchange(ChunkRequest request) {
+
+        // TODO - validate the JWT
+        String fileName = dir+request.getFileName();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            reader.skip(request.getStart()); // chars to skip
+
+            int size = request.getEnd()-request.getStart();
+
+            char[] buf = new char[size];
+
+            int charsRead = reader.read(buf);
+
+       //     System.out.println(charsRead);
+
+
+
+            ChunkResponse response = new ChunkResponse();
+            response.setContents(String.valueOf(buf));
+
+//            System.out.println(response.getContents().length());
+
+            return response ;
+
+        } catch (IOException io)
+        {
+            io.printStackTrace();
+        }
+
+        return null;
+
+
+    }
+
 
 
 
