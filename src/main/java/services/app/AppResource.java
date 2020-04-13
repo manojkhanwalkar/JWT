@@ -4,16 +4,13 @@ package services.app;
 import com.codahale.metrics.annotation.Timed;
 import data.*;
 import services.authenticator.LoginManager;
-import util.Connection;
-import util.JSONUtil;
-import util.JWSVerifyUtil;
-import util.KeyExchangeManager;
+import util.*;
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
+import java.io.File;
 
 
 @Path("/")
@@ -81,6 +78,29 @@ JWSVerifyUtil jwsVerifyUtil; //  = new JWSVerifyUtil();
 
     }
 
+
+    private static final String dir = "/home/manoj/IdeaProjects/JWT/src/main/resources/files/";
+
+    @POST
+    @Timed
+    @Path("/meta")
+    @Produces(MediaType.APPLICATION_JSON)
+    public FileMetaResponse exchange(FileMetaRequest request) {
+
+        // TODO - validate the JWT
+
+        String checkSum = CheckSum.checkSum(dir+request.getFileName() );
+
+        File file = new File(dir+request.getFileName());
+
+
+
+        FileMetaResponse response = new FileMetaResponse((int)file.length(),checkSum);
+
+        return response;
+
+
+    }
 
 
 
