@@ -16,9 +16,11 @@ public class FileDownloadTester {
 
     public static void main(String[] args) throws Exception  {
 
+        String fileName = "File2";
+
         Connection app = new Connection("https://localhost:8380/");
 
-        FileMetaRequest metaRequest = new FileMetaRequest("File1","TODO");
+        FileMetaRequest metaRequest = new FileMetaRequest(fileName,"TODO");
 
         String str = app.sendSimple(JSONUtil.toJSON(metaRequest),"meta");
 
@@ -26,22 +28,36 @@ public class FileDownloadTester {
 
         System.out.println(str);
 
-        ChunkRequest request = new ChunkRequest("File1", "TODO", 0, metaResponse.getFileSize());
+        final int chunks=10;
 
+        final int chunkSize = metaResponse.getFileSize()/chunks;
 
-        str = app.sendSimple(JSONUtil.toJSON(request),"chunk");
-
-        ChunkResponse response = (ChunkResponse)JSONUtil.fromJSON(str,ChunkResponse.class);
-
-       // System.out.println(str.length());
-
+        int start =0; int end = chunkSize;
 
         File file = new File("/tmp/"+metaRequest.getFileName());
 
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(file)))
-        {
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
 
-            writer.write(response.getContents());
+            for (int i = 0; i < chunks; i++) {
+
+                ChunkRequest request = new ChunkRequest(fileName, "TODO", start, end);
+
+
+                str = app.sendSimple(JSONUtil.toJSON(request), "chunk");
+
+                ChunkResponse response = (ChunkResponse) JSONUtil.fromJSON(str, ChunkResponse.class);
+
+                // System.out.println(str.length());
+
+
+                writer.write(response.getContents());
+
+                start = end;
+                end = end+chunkSize;
+
+
+            }
+
             writer.flush();
 
         }
