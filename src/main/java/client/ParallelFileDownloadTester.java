@@ -57,7 +57,7 @@ public class ParallelFileDownloadTester {
 
     public static void main(String[] args) throws Exception  {
 
-        String fileName = "File3";
+        String fileName = "File1";
 
         Connection app = new Connection("https://localhost:8380/");
 
