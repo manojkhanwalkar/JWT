@@ -1,0 +1,180 @@
+{
+  "version" : "4.0.0",
+  "gauges" : {
+
+    "jvm.gc.G1-Young-Generation.count" : {
+      "value" : 5
+    },
+
+    "jvm.memory.heap.usage" : {
+      "value" : 0.03337142092322335
+    },
+
+    "jvm.threads.count" : {
+      "value" : 31
+    },
+    "jvm.threads.daemon.count" : {
+      "value" : 8
+    }
+
+  },
+
+  "meters" : {
+    "ch.qos.logback.core.Appender.all" : {
+      "count" : 23,
+      "m15_rate" : 2.6249126566399608,
+      "m1_rate" : 0.009044442310405817,
+      "m5_rate" : 1.131699614444448,
+      "mean_rate" : 0.059099566524214525,
+      "units" : "events/second"
+    },
+
+    "io.dropwizard.jetty.MutableServletContextHandler.2xx-responses" : {
+      "count" : 3,
+      "m15_rate" : 0.002940380799747163,
+      "m1_rate" : 0.030734525139975842,
+      "m5_rate" : 0.007503881456645168,
+      "mean_rate" : 0.007730786563146618,
+      "units" : "events/second"
+    },
+
+    "io.dropwizard.jetty.MutableServletContextHandler.4xx-responses" : {
+      "count" : 0,
+      "m15_rate" : 0.0,
+      "m1_rate" : 0.0,
+      "m5_rate" : 0.0,
+      "mean_rate" : 0.0,
+      "units" : "events/second"
+    },
+    "io.dropwizard.jetty.MutableServletContextHandler.5xx-responses" : {
+      "count" : 0,
+      "m15_rate" : 0.0,
+      "m1_rate" : 0.0,
+      "m5_rate" : 0.0,
+      "mean_rate" : 0.0,
+      "units" : "events/second"
+    }
+
+  },
+  "timers" : {
+    "io.dropwizard.jetty.MutableServletContextHandler.dispatches" : {
+      "count" : 3,
+      "max" : 0.17400000000000002,
+      "mean" : 0.006715777046405672,
+      "min" : 0.005,
+      "p50" : 0.005,
+      "p75" : 0.008,
+      "p95" : 0.008,
+      "p98" : 0.008,
+      "p99" : 0.008,
+      "p999" : 0.17400000000000002,
+      "stddev" : 0.007305577679008664,
+      "m15_rate" : 0.002940380799747163,
+      "m1_rate" : 0.030734525139975842,
+      "m5_rate" : 0.007503881456645168,
+      "mean_rate" : 0.0077307557497587175,
+      "duration_units" : "seconds",
+      "rate_units" : "calls/second"
+    },
+
+
+    "io.dropwizard.jetty.MutableServletContextHandler.post-requests" : {
+      "count" : 3,
+      "max" : 0.17400000000000002,
+      "mean" : 0.006715777046405672,
+      "min" : 0.005,
+      "p50" : 0.005,
+      "p75" : 0.008,
+      "p95" : 0.008,
+      "p98" : 0.008,
+      "p99" : 0.008,
+      "p999" : 0.17400000000000002,
+      "stddev" : 0.007305577679008664,
+      "m15_rate" : 0.002940380799747163,
+      "m1_rate" : 0.030734525139975842,
+      "m5_rate" : 0.007503881456645168,
+      "mean_rate" : 0.007730774249750815,
+      "duration_units" : "seconds",
+      "rate_units" : "calls/second"
+    },
+
+    "io.dropwizard.jetty.MutableServletContextHandler.requests" : {
+      "count" : 3,
+      "max" : 0.17400000000000002,
+      "mean" : 0.006715777046405672,
+      "min" : 0.005,
+      "p50" : 0.005,
+      "p75" : 0.008,
+      "p95" : 0.008,
+      "p98" : 0.008,
+      "p99" : 0.008,
+      "p999" : 0.17400000000000002,
+      "stddev" : 0.007305577679008664,
+      "m15_rate" : 0.002940380799747163,
+      "m1_rate" : 0.030734525139975842,
+      "m5_rate" : 0.007503881456645168,
+      "mean_rate" : 0.007730742762318764,
+      "duration_units" : "seconds",
+      "rate_units" : "calls/second"
+    },
+
+    "org.eclipse.jetty.server.HttpConnectionFactory.8380.connections" : {
+      "count" : 3,
+      "max" : 0.570884481,
+      "mean" : 0.39569256576706785,
+      "min" : 0.39519146400000005,
+      "p50" : 0.395541958,
+      "p75" : 0.395541958,
+      "p95" : 0.395541958,
+      "p98" : 0.395541958,
+      "p99" : 0.395541958,
+      "p999" : 0.570884481,
+      "stddev" : 0.007434901671266204,
+      "m15_rate" : 0.0018323504007265084,
+      "m1_rate" : 0.014743408065840496,
+      "m5_rate" : 0.004198172220968667,
+      "mean_rate" : 0.007721256827436059,
+      "duration_units" : "seconds",
+      "rate_units" : "calls/second"
+    },
+    "org.eclipse.jetty.server.HttpConnectionFactory.8381.connections" : {
+      "count" : 19,
+      "max" : 63.218674485,
+      "mean" : 25.639290678106658,
+      "min" : 0.017083337,
+      "p50" : 0.029092271000000003,
+      "p75" : 56.891848983,
+      "p95" : 63.218674485,
+      "p98" : 63.218674485,
+      "p99" : 63.218674485,
+      "p999" : 63.218674485,
+      "stddev" : 28.579964593971987,
+      "m15_rate" : 0.0151466129738968,
+      "m1_rate" : 0.025143406190292338,
+      "m5_rate" : 0.030038450296418644,
+      "mean_rate" : 0.04890217961203131,
+      "duration_units" : "seconds",
+      "rate_units" : "calls/second"
+    },
+    "services.app.AppResource.claims" : {
+      "count" : 3,
+      "max" : 0.111169504,
+      "mean" : 0.0037812581582041915,
+      "min" : 0.0028990960000000003,
+      "p50" : 0.0028990960000000003,
+      "p75" : 0.004358426,
+      "p95" : 0.004358426,
+      "p98" : 0.004358426,
+      "p99" : 0.004358426,
+      "p999" : 0.111169504,
+      "stddev" : 0.004647767926193733,
+      "m15_rate" : 0.002940380799747163,
+      "m1_rate" : 0.030734525139975842,
+      "m5_rate" : 0.007503881456645168,
+      "mean_rate" : 0.007730368925789443,
+      "duration_units" : "seconds",
+      "rate_units" : "calls/second"
+    }
+
+  }
+}

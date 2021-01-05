@@ -1,0 +1,668 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "gauges": {
+      "type": "object",
+      "properties": {
+        "jvm.gc.G1-Young-Generation.count": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        },
+        "jvm.memory.heap.usage": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        },
+        "jvm.threads.count": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        },
+        "jvm.threads.daemon.count": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        }
+      },
+      "required": [
+        "jvm.gc.G1-Young-Generation.count",
+        "jvm.memory.heap.usage",
+        "jvm.threads.count",
+        "jvm.threads.daemon.count"
+      ]
+    },
+    "meters": {
+      "type": "object",
+      "properties": {
+        "ch.qos.logback.core.Appender.all": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "units"
+          ]
+        },
+        "io.dropwizard.jetty.MutableServletContextHandler.2xx-responses": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "units"
+          ]
+        },
+        "io.dropwizard.jetty.MutableServletContextHandler.4xx-responses": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "units"
+          ]
+        },
+        "io.dropwizard.jetty.MutableServletContextHandler.5xx-responses": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "units"
+          ]
+        }
+      },
+      "required": [
+        "ch.qos.logback.core.Appender.all",
+        "io.dropwizard.jetty.MutableServletContextHandler.2xx-responses",
+        "io.dropwizard.jetty.MutableServletContextHandler.4xx-responses",
+        "io.dropwizard.jetty.MutableServletContextHandler.5xx-responses"
+      ]
+    },
+    "timers": {
+      "type": "object",
+      "properties": {
+        "io.dropwizard.jetty.MutableServletContextHandler.dispatches": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "number"
+            },
+            "mean": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            },
+            "p50": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            },
+            "p95": {
+              "type": "number"
+            },
+            "p98": {
+              "type": "number"
+            },
+            "p99": {
+              "type": "number"
+            },
+            "p999": {
+              "type": "number"
+            },
+            "stddev": {
+              "type": "number"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "duration_units": {
+              "type": "string"
+            },
+            "rate_units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "max",
+            "mean",
+            "min",
+            "p50",
+            "p75",
+            "p95",
+            "p98",
+            "p99",
+            "p999",
+            "stddev",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "duration_units",
+            "rate_units"
+          ]
+        },
+        "io.dropwizard.jetty.MutableServletContextHandler.post-requests": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "number"
+            },
+            "mean": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            },
+            "p50": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            },
+            "p95": {
+              "type": "number"
+            },
+            "p98": {
+              "type": "number"
+            },
+            "p99": {
+              "type": "number"
+            },
+            "p999": {
+              "type": "number"
+            },
+            "stddev": {
+              "type": "number"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "duration_units": {
+              "type": "string"
+            },
+            "rate_units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "max",
+            "mean",
+            "min",
+            "p50",
+            "p75",
+            "p95",
+            "p98",
+            "p99",
+            "p999",
+            "stddev",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "duration_units",
+            "rate_units"
+          ]
+        },
+        "io.dropwizard.jetty.MutableServletContextHandler.requests": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "number"
+            },
+            "mean": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            },
+            "p50": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            },
+            "p95": {
+              "type": "number"
+            },
+            "p98": {
+              "type": "number"
+            },
+            "p99": {
+              "type": "number"
+            },
+            "p999": {
+              "type": "number"
+            },
+            "stddev": {
+              "type": "number"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "duration_units": {
+              "type": "string"
+            },
+            "rate_units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "max",
+            "mean",
+            "min",
+            "p50",
+            "p75",
+            "p95",
+            "p98",
+            "p99",
+            "p999",
+            "stddev",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "duration_units",
+            "rate_units"
+          ]
+        },
+        "org.eclipse.jetty.server.HttpConnectionFactory.8380.connections": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "number"
+            },
+            "mean": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            },
+            "p50": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            },
+            "p95": {
+              "type": "number"
+            },
+            "p98": {
+              "type": "number"
+            },
+            "p99": {
+              "type": "number"
+            },
+            "p999": {
+              "type": "number"
+            },
+            "stddev": {
+              "type": "number"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "duration_units": {
+              "type": "string"
+            },
+            "rate_units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "max",
+            "mean",
+            "min",
+            "p50",
+            "p75",
+            "p95",
+            "p98",
+            "p99",
+            "p999",
+            "stddev",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "duration_units",
+            "rate_units"
+          ]
+        },
+        "org.eclipse.jetty.server.HttpConnectionFactory.8381.connections": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "number"
+            },
+            "mean": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            },
+            "p50": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            },
+            "p95": {
+              "type": "number"
+            },
+            "p98": {
+              "type": "number"
+            },
+            "p99": {
+              "type": "number"
+            },
+            "p999": {
+              "type": "number"
+            },
+            "stddev": {
+              "type": "number"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "duration_units": {
+              "type": "string"
+            },
+            "rate_units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "max",
+            "mean",
+            "min",
+            "p50",
+            "p75",
+            "p95",
+            "p98",
+            "p99",
+            "p999",
+            "stddev",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "duration_units",
+            "rate_units"
+          ]
+        },
+        "services.app.AppResource.claims": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "number"
+            },
+            "mean": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            },
+            "p50": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            },
+            "p95": {
+              "type": "number"
+            },
+            "p98": {
+              "type": "number"
+            },
+            "p99": {
+              "type": "number"
+            },
+            "p999": {
+              "type": "number"
+            },
+            "stddev": {
+              "type": "number"
+            },
+            "m15_rate": {
+              "type": "number"
+            },
+            "m1_rate": {
+              "type": "number"
+            },
+            "m5_rate": {
+              "type": "number"
+            },
+            "mean_rate": {
+              "type": "number"
+            },
+            "duration_units": {
+              "type": "string"
+            },
+            "rate_units": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "max",
+            "mean",
+            "min",
+            "p50",
+            "p75",
+            "p95",
+            "p98",
+            "p99",
+            "p999",
+            "stddev",
+            "m15_rate",
+            "m1_rate",
+            "m5_rate",
+            "mean_rate",
+            "duration_units",
+            "rate_units"
+          ]
+        }
+      },
+      "required": [
+        "io.dropwizard.jetty.MutableServletContextHandler.dispatches",
+        "io.dropwizard.jetty.MutableServletContextHandler.post-requests",
+        "io.dropwizard.jetty.MutableServletContextHandler.requests",
+        "org.eclipse.jetty.server.HttpConnectionFactory.8380.connections",
+        "org.eclipse.jetty.server.HttpConnectionFactory.8381.connections",
+        "services.app.AppResource.claims"
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "gauges",
+    "meters",
+    "timers"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "deadlocks": {
+      "type": "object",
+      "properties": {
+        "healthy": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "healthy"
+      ]
+    }
+  },
+  "required": [
+    "deadlocks"
+  ]
+}
