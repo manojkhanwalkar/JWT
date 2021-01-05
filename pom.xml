@@ -122,7 +122,7 @@
         <dependency>
             <groupId>org.bitbucket.b_c</groupId>
             <artifactId>jose4j</artifactId>
-            <version>0.7.0</version>
+            <version>0.7.2</version>
         </dependency>
 
 
@@ -168,6 +168,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>2.3</version>
+
+
                 <executions>
                     <!-- Run shade goal on package phase -->
                     <execution>
@@ -175,13 +177,34 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                                <filters>
+                                    <filter>
+                                        <artifact>*:*</artifact>
+                                        <excludes>
+                                            <exclude>META-INF/*.SF</exclude>
+                                            <exclude>META-INF/*.DSA</exclude>
+                                            <exclude>META-INF/*.RSA</exclude>
+                                        </excludes>
+                                    </filter>
+                                </filters>
+
+                        </configuration>
                     </execution>
+
+
                 </executions>
             </plugin>
 
         </plugins>
 
+
+
     </build>
+
 
 
 
