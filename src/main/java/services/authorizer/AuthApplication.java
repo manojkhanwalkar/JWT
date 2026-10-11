@@ -1,9 +1,9 @@
 package services.authorizer;
 
 
-import io.dropwizard.Application;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
+import io.dropwizard.core.Application;
+import io.dropwizard.core.setup.Bootstrap;
+import io.dropwizard.core.setup.Environment;
 
 
 public class AuthApplication extends Application<AuthConfiguration> {

@@ -1,7 +1,5 @@
 package services.authenticator;
 
-import io.netty.util.internal.ConcurrentSet;
-
 import java.util.*;
 import java.util.concurrent.*;
 
