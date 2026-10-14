@@ -1,46 +1,51 @@
+/*
+ * CircularQueue
+ *
+ * Fixed-capacity ring buffer that keeps the last N values added. When it is full, the
+ * oldest value is overwritten. Meant to hold the most recent metric samples for each
+ * metric. Not thread-safe.
+ */
 package services.metrics;
 
 public class CircularQueue<T> {
 
     final int capacity;
 
-    int head = 0;
+    /** Index where the next value is written. Always in [0, capacity), so it never overflows. */
+    private int head = 0;
 
-    T[] values ;
+    private final Object[] values;
 
-    public CircularQueue(int capacity, T unusedValue)
-    {
+    /**
+     * @param capacity    number of values kept
+     * @param unusedValue placeholder in slots that have not been written yet
+     */
+    public CircularQueue(int capacity, T unusedValue) {
+        if (capacity <= 0) {
+            throw new IllegalArgumentException("capacity must be positive");
+        }
         this.capacity = capacity;
-        values  = (T[]) new Object[capacity];
-
-        for (int i=0;i<capacity;i++)
-            values[i] = unusedValue;
+        values = new Object[capacity];
+        java.util.Arrays.fill(values, unusedValue);
     }
 
-    public void add(T t)
-    {
-        values[head%capacity] = t;
-        head++;
+    /** Adds a value. If the buffer is full, the oldest value is overwritten. */
+    public void add(T t) {
+        values[head] = t;
+        head = (head + 1) % capacity;
     }
 
-    public T[] get()
-    {
-        T[] valuesToReturn = (T[])new Object[capacity];
-        int index=0;
-        int pos = (head-1)%capacity;
-        for (int i=pos; i>=0;i--)
-        {
-            valuesToReturn[index++] = values[i];
+    /**
+     * Returns a snapshot of all {@code capacity} slots, newest first. Slots that have
+     * never been written hold the placeholder value.
+     */
+    @SuppressWarnings("unchecked")
+    public T[] get() {
+        Object[] result = new Object[capacity];
+        int pos = (head - 1 + capacity) % capacity;
+        for (int i = 0; i < capacity; i++) {
+            result[i] = values[(pos - i + capacity) % capacity];
         }
-
-        for (int i=capacity-1;i>pos;i--)
-        {
-            valuesToReturn[index++] = values[i];
-
-        }
-
-        return valuesToReturn;
+        return (T[]) result;
     }
-
-
 }

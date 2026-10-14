@@ -1,3 +1,10 @@
+/*
+ * ParallelFileDownloadTester
+ *
+ * Manual test of a parallel chunked download from the app service. It splits the
+ * file into 100 ranges, fetches them at the same time on a 4-thread pool, puts them
+ * back together in order, writes the file to /tmp, and checks the MD5 against /meta.
+ */
 package client;
 
 import data.ChunkRequest;
@@ -8,117 +15,70 @@ import util.CheckSum;
 import util.Connection;
 import util.JSONUtil;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.concurrent.CountDownLatch;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ParallelFileDownloadTester {
 
-    static class ChunkTask implements Runnable {
+    private static final int CHUNKS = 100;
+    private static final int THREADS = 4;
 
-        volatile String[] responses;
-        int index;
-        int start ;
-        int end;
-        CountDownLatch latch;
-        String fileName;
+    /** Thread-safe, so one instance serves every download task. */
+    private static final Connection APP = new Connection("https://localhost:8380/");
 
-        Connection app = new Connection("https://localhost:8380/");
-
-        public ChunkTask(String[] responses, int index, int start, int end, CountDownLatch latch,String fileName) {
-            this.responses = responses;
-            this.index = index;
-            this.start = start;
-            this.end = end;
-            this.latch = latch;
-            this.fileName = fileName;
-        }
-
-        public void run()
-        {
-            ChunkRequest request = new ChunkRequest(fileName, "TODO", start, end);
-            String str = null;
-            try {
-
-                System.out.println(Thread.currentThread().getName() + " " + start + " " + end);
-                str = app.sendSimple(JSONUtil.toJSON(request), "chunk");
-               // Thread.sleep(2000);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            ChunkResponse response = (ChunkResponse) JSONUtil.fromJSON(str, ChunkResponse.class);
-            responses[index]= response.getContents();
-            latch.countDown();
+    /** Fetches bytes [start, end) of {@code fileName} from /chunk. */
+    static String fetchChunk(String fileName, int start, int end) {
+        try {
+            System.out.println(Thread.currentThread().getName() + " " + start + " " + end);
+            String json = APP.sendSimple(JSONUtil.toJSON(new ChunkRequest(fileName, "TODO", start, end)), "chunk");
+            return JSONUtil.fromJSON(json, ChunkResponse.class).getContents();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new CompletionException(e);
+        } catch (Exception e) {
+            throw new CompletionException(e);
         }
     }
 
-    public static void main(String[] args) throws Exception  {
+    /** Downloads File1 in parallel and reports whether the checksum matches. */
+    public static void main(String[] args) throws Exception {
+        String fileName = args.length > 0 ? args[0] : "File1";
 
-        String fileName = "File1";
+        String metaJson = APP.sendSimple(JSONUtil.toJSON(new FileMetaRequest(fileName, "TODO")), "meta");
+        FileMetaResponse metaResponse = JSONUtil.fromJSON(metaJson, FileMetaResponse.class);
+        System.out.println(metaJson);
 
-        Connection app = new Connection("https://localhost:8380/");
+        int fileSize = metaResponse.getFileSize();
+        int chunkSize = Math.max(1, Math.ceilDiv(fileSize, CHUNKS));
+        Path file = Path.of("/tmp", fileName);
 
-        FileMetaRequest metaRequest = new FileMetaRequest(fileName,"TODO");
-
-        String str = app.sendSimple(JSONUtil.toJSON(metaRequest),"meta");
-
-        FileMetaResponse metaResponse = (FileMetaResponse)JSONUtil.fromJSON(str,FileMetaResponse.class);
-
-        System.out.println(str);
-
-        final int chunks=100;
-
-        final int chunkSize = metaResponse.getFileSize()/chunks;
-
-        int start =0; int end = chunkSize;
-
-        File file = new File("/tmp/"+metaRequest.getFileName());
-
-         String[] responses = new String[chunks];
-
-         CountDownLatch latch = new CountDownLatch(chunks);
-
-        ExecutorService service = Executors.newFixedThreadPool(4);
-
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-
-            for (int i = 0; i < chunks; i++) {
-
-                ChunkTask chunkTask = new ChunkTask(responses, i, start, end, latch, fileName);
-
-
-                service.submit(chunkTask);
-                start = end;
-                end = end+chunkSize;
-
+        ExecutorService service = Executors.newFixedThreadPool(THREADS);
+        try {
+            List<CompletableFuture<String>> chunks = new ArrayList<>();
+            for (int start = 0; start < fileSize; start += chunkSize) {
+                final int s = start, e = Math.min(start + chunkSize, fileSize);
+                chunks.add(CompletableFuture.supplyAsync(() -> fetchChunk(fileName, s, e), service));
             }
 
-
-            latch.await();
-
-            for (int i = 0; i < chunks; i++) {
-
-                writer.write(responses[i]);
+            // The futures are joined in submission order, so the chunks are written in file order.
+            // If any chunk fails, join() throws, which is better than hanging the way the old latch did.
+            try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.ISO_8859_1)) {
+                for (CompletableFuture<String> chunk : chunks) {
+                    writer.write(chunk.join());
+                }
             }
-
-            writer.flush();
-
+        } finally {
+            service.shutdownNow();
         }
 
-        String checkSum = CheckSum.checkSum("/tmp/"+file.getName());
-
-       // System.out.println(checkSum);
-
-
-        System.out.println("Check sum match is " + checkSum.equals(metaResponse.getCheckSum()));
-
-        service.shutdownNow();
-
+        System.out.println("Checksum match is " + CheckSum.checkSum(file).equals(metaResponse.getCheckSum()));
     }
-
-
-
 }

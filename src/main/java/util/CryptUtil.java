@@ -1,194 +1,121 @@
+/*
+ * CryptUtil
+ *
+ * Static helpers for keys:
+ *   - generate ephemeral EC key pairs for ECDH key exchange
+ *   - convert public and private keys to and from Base64 strings so they can travel in JSON
+ *   - load a public key from an X.509 certificate file and a private key from a PKCS#8 DER file
+ */
 package util;
 
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
-import java.security.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.InvalidKeySpecException;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
-import static java.util.Base64.getEncoder;
+public final class CryptUtil {
 
-public class CryptUtil {
+    /**
+     * Curve used for ephemeral ECDH keys. This is NIST P-256, the same curve as the
+     * ES256 JWS signatures. secp256k1 was used before, but the JDK removed it in
+     * Java 16, so key generation failed on the Java 21+ runtime this project targets.
+     */
+    public static final String EC_CURVE = "secp256r1";
 
+    /** Shared CSPRNG. SecureRandom is thread-safe, and seeding is expensive, so it is reused. */
+    public static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+    private CryptUtil() {
+    }
 
-    private static byte[] extractPublicKeyFromFile(String fileName)
-    {
+    /** Generates a fresh EC key pair on {@link #EC_CURVE} for one key exchange. */
+    public static KeyPair generateECKeyPair() {
         try {
-            File privKeyFile = new File(fileName);
-            // read private key DER file
-            DataInputStream dis = new DataInputStream(new FileInputStream(privKeyFile));
-            byte[] privKeyBytes = new byte[(int)privKeyFile.length()];
-            dis.read(privKeyBytes);
-            dis.close();
-
-            return privKeyBytes;
-        } catch (Exception e) {
-            e.printStackTrace();
+            KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+            generator.initialize(new ECGenParameterSpec(EC_CURVE), SECURE_RANDOM);
+            return generator.generateKeyPair();
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("EC key generation unavailable for " + EC_CURVE, e);
         }
-
-        return null;
     }
 
-    private static PublicKey getPublicKey(byte[] bytes)
-    {
+    /** Base64-encodes a public key's X.509 (SubjectPublicKeyInfo) form. */
+    public static String convertPublicKeyToString(PublicKey key) {
+        return Base64.getEncoder().encodeToString(key.getEncoded());
+    }
+
+    /** Base64-encodes a private key's PKCS#8 form. */
+    public static String convertPrivateKeyToString(PrivateKey key) {
+        return Base64.getEncoder().encodeToString(key.getEncoded());
+    }
+
+    /**
+     * Decodes a Base64 X.509 public key made by {@link #convertPublicKeyToString}.
+     *
+     * @param type key algorithm, for example "EC" or "RSA"
+     * @throws IllegalArgumentException if the string is not a valid key of that type
+     */
+    public static PublicKey convertStringtoPublicKey(String str, String type) {
         try {
-
-            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            X509Certificate cer = (X509Certificate) fact.generateCertificate(bis);
-            PublicKey key = cer.getPublicKey();
-
-
-       //     System.out.println(cer);
-            return key;
-        } catch (Exception e) {
-            e.printStackTrace();
+            byte[] keyBytes = Base64.getDecoder().decode(str);
+            return KeyFactory.getInstance(type).generatePublic(new X509EncodedKeySpec(keyBytes));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException("Invalid " + type + " public key", e);
         }
-
-        return null;
     }
 
-    public static String convertPublicKeyToString(PublicKey key)
-    {
-
-
-        // public key to bytes , bytes to public key
-        String publicKeyStr= getEncoder().encodeToString(key.getEncoded());
-        return publicKeyStr;
-
-    }
-
-
-    public static String convertPrivateKeyToString(PrivateKey key)
-    {
-
-
-
-        String privateKeyStr= getEncoder().encodeToString(key.getEncoded());
-        return privateKeyStr;
-
-    }
-
-
-    public static PublicKey convertStringtoPublicKey(String str, String type)
-    {
-        try{
-            byte[] byteKey = Base64.getDecoder().decode(str.getBytes());
-            X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(byteKey);
-            KeyFactory kf = KeyFactory.getInstance(type);
-
-            return kf.generatePublic(X509publicKey);
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-
-    public static PrivateKey convertStringtoPrivateKey(String str, String type)
-    {
-        try{
-            byte[] byteKey = Base64.getDecoder().decode(str.getBytes());
-            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(byteKey);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
-            RSAPrivateKey privKey = (RSAPrivateKey) kf.generatePrivate(spec);
-
-
-           /*
-            X509EncodedKeySpec X509privateKey= new X509EncodedKeySpec(byteKey);
-            KeyFactory kf = KeyFactory.getInstance(type);
-
-            return kf.generatePrivate(X509privateKey); */
-
-           return privKey;
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    static SecureRandom secureRandom = new SecureRandom();
-
-
-
-
-
-
-    public static PublicKey getPublicKeyFromCertFile(String file,String keyType)
-    {
-        return getPublicKey(extractPublicKeyFromFile(file));
-    }
-
-
-
-    public static PrivateKey getPrivateKeyDerFromFile(String file, String keyType){
+    /**
+     * Decodes a Base64 PKCS#8 private key made by {@link #convertPrivateKeyToString}.
+     *
+     * @param type key algorithm, for example "EC" or "RSA"
+     * @throws IllegalArgumentException if the string is not a valid key of that type
+     */
+    public static PrivateKey convertStringtoPrivateKey(String str, String type) {
         try {
-            File privKeyFile = new File(file);
-            // read private key DER file
-            DataInputStream dis = new DataInputStream(new FileInputStream(privKeyFile));
-            byte[] privKeyBytes = new byte[(int)privKeyFile.length()];
-            dis.read(privKeyBytes);
-            dis.close();
+            byte[] keyBytes = Base64.getDecoder().decode(str);
+            return KeyFactory.getInstance(type).generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException("Invalid " + type + " private key", e);
+        }
+    }
 
-            KeyFactory kf = KeyFactory.getInstance(keyType);
-            // decode private key
-            PKCS8EncodedKeySpec privSpec = new PKCS8EncodedKeySpec(privKeyBytes);
-            PrivateKey privKey = kf.generatePrivate(privSpec);
-
-            return privKey;
+    /**
+     * Reads an X.509 certificate (PEM or DER) and returns its public key.
+     *
+     * @param keyType kept for API compatibility. The algorithm comes from the certificate.
+     */
+    public static PublicKey getPublicKeyFromCertFile(String file, String keyType) {
+        try (InputStream in = Files.newInputStream(Path.of(file))) {
+            return CertificateFactory.getInstance("X.509").generateCertificate(in).getPublicKey();
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
-            e.printStackTrace();
+            throw new UncheckedIOException("Unable to read certificate " + file, e);
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException("Invalid certificate " + file, e);
         }
-
-        return null;
     }
 
-
-
-    public static void main(String[] args) throws Exception {
-
-  /*
-     private static final String ALGO = "SHA256withECDSA";
-
-  PublicKey pub =  getPublicKey(extractPublicKeyFromFile("/home/manoj/IdeaProjects/phoenix/src/main/resources/idpcertificate.pem"));
-        PrivateKey priv = loadPrivateKey("/home/manoj/IdeaProjects/phoenix/src/main/resources/idpprivatekey.der");
-
-        String plainText = "Hello World from EC Public and Private keys";
-
-        Signature ecdsaSign = Signature.getInstance(ALGO);
-        ecdsaSign.initSign(priv);
-        ecdsaSign.update(plainText.getBytes("UTF-8"));
-        byte[] signature = ecdsaSign.sign();
-
-
-        Signature ecdsaVerify = Signature.getInstance(ALGO);
-
-        ecdsaVerify.initVerify(pub);
-        ecdsaVerify.update(plainText.getBytes("UTF-8"));
-        boolean result = ecdsaVerify.verify(signature);
-
-
-        System.out.println(result);*/
-
-
-
+    /** Reads a PKCS#8 DER-encoded private key of the given algorithm from a file. */
+    public static PrivateKey getPrivateKeyDerFromFile(String file, String keyType) {
+        try {
+            byte[] keyBytes = Files.readAllBytes(Path.of(file));
+            return KeyFactory.getInstance(keyType).generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Unable to read private key " + file, e);
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException("Invalid " + keyType + " private key " + file, e);
+        }
     }
-
-
-
 }

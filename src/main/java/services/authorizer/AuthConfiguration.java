@@ -1,33 +1,12 @@
+/*
+ * AuthConfiguration
+ *
+ * Dropwizard configuration for the authorizer (JWT issuing) service (Auth.yml). Every setting comes from
+ * the shared services.ServiceConfiguration base.
+ */
 package services.authorizer;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.dropwizard.core.Configuration;
-import jakarta.validation.constraints.NotEmpty;
+import services.ServiceConfiguration;
 
-public class AuthConfiguration extends Configuration {
-    @NotEmpty
-    private String template;
-
-    @NotEmpty
-    private String defaultName = "Stranger";
-
-    @JsonProperty
-    public String getTemplate() {
-        return template;
-    }
-
-    @JsonProperty
-    public void setTemplate(String template) {
-        this.template = template;
-    }
-
-    @JsonProperty
-    public String getDefaultName() {
-        return defaultName;
-    }
-
-    @JsonProperty
-    public void setDefaultName(String name) {
-        this.defaultName = name;
-    }
+public class AuthConfiguration extends ServiceConfiguration {
 }

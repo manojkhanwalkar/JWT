@@ -1,3 +1,13 @@
+/*
+ * PojoGenerator
+ *
+ * Dev utility for the metrics.data model.
+ *   generateClasses()   regenerates the Java POJOs from metrics-schema.json with jsonschema2pojo
+ *   testGeneratedCode() parses the sample metrics-data.json into those POJOs and pretty-prints it
+ *
+ * To make a JSON schema from a sample JSON file, use
+ * https://www.liquid-technologies.com/online-json-to-schema-converter
+ */
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import com.sun.codemodel.JCodeModel;
@@ -13,11 +23,9 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 
-// For creating JSON schema from a json file , use https://www.liquid-technologies.com/online-json-to-schema-converter
-// Then for creating a java object model from that schema , use the jsonschema2pojo library.
-
 public class PojoGenerator {
 
+    /** Runs the parse check. Uncomment generateClasses() to regenerate the model. */
     public static void main(String[] args) throws Exception {
 
        // generateClasses();
@@ -26,6 +34,7 @@ public class PojoGenerator {
 
     }
 
+    /** Generates metrics.data classes from metrics-schema.json into a temporary directory. */
     public static void generateClasses() throws Exception {
 
         JCodeModel codeModel = new JCodeModel();
@@ -51,13 +60,14 @@ public class PojoGenerator {
 
     }
 
-   public static void testGeneratedCode() throws Exception {
+    /** Parses the sample metrics-data.json into MetricsSchema and prints it again as JSON. */
+    public static void testGeneratedCode() throws Exception {
 
         URL source = PojoGenerator.class.getResource("metrics-data.json");
 
         String metrics = Resources.toString(source, Charsets.US_ASCII);
 
-        var metricObj = (MetricsSchema) JSONUtil.fromJSON(metrics, MetricsSchema.class);
+        var metricObj = JSONUtil.fromJSON(metrics, MetricsSchema.class);
 
         var str = JSONUtil.toPrettyJSON(metricObj);
 

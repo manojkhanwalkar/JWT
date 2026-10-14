@@ -1,23 +1,20 @@
+/*
+ * ECDHETester
+ *
+ * Manual end-to-end test of the encrypted-message flow. It runs an ECDH key exchange
+ * with the app service (/keyexchange), sends "Hello World" AES-encrypted to
+ * /eservice, and prints the decrypted reply, which should be "HELLO WORLD".
+ * Needs AppApplication running on :8380.
+ */
 package client;
 
-import data.*;
 import util.Connection;
-import util.JSONUtil;
 
 public class ECDHETester {
 
-    public static void main(String[] args) throws Exception{
-
-
-        Connection  app = new Connection("https://localhost:8380/");
-
-        String str = app.esend("Hello World","eservice");
-
-        System.out.println(str);
-
-
-
-
+    /** Runs one encrypted round trip and prints the decrypted result. */
+    public static void main(String[] args) throws Exception {
+        Connection app = new Connection("https://localhost:8380/");
+        System.out.println(app.esend("Hello World", "eservice"));
     }
-
 }

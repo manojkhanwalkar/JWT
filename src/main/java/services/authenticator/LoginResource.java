@@ -1,103 +1,52 @@
+/*
+ * LoginResource
+ *
+ * REST endpoints of the authenticator service:
+ *   POST /login   check credentials and get a session id
+ *   POST /verify  check whether a session id is still valid (called by the authorizer)
+ *   POST /logout  end a user's session
+ */
 package services.authenticator;
 
-
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
-
-import data.*;
-
-
+import data.LoginRequest;
+import data.LoginResponse;
+import data.LogoutRequest;
+import data.LogoutResponse;
+import data.SessionVerifyRequest;
+import data.SessionVerifyResponse;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
-
 
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
 public class LoginResource {
-    private final String template;
-    private final String defaultName;
 
+    private final LoginManager loginManager = new LoginManager();
 
-    LoginManager loginManager;
-
-
-
-
-    public LoginResource(String template, String defaultName) {
-        this.template = template;
-        this.defaultName = defaultName;
-
-        loginManager = new LoginManager();
-
-
-    }
-
-
-
+    /** Ends the user's session. */
     @POST
     @Timed
     @Path("/logout")
-    @Produces(MediaType.APPLICATION_JSON)
-    public LogoutResponse claims(LogoutRequest request) {
-
-
+    public LogoutResponse logout(LogoutRequest request) {
         return loginManager.logout(request);
-
-
-
     }
 
-
+    /** Reports whether the session id is still valid. */
     @POST
     @Timed
     @Path("/verify")
-    @Produces(MediaType.APPLICATION_JSON)
-    public SessionVerifyResponse claims(SessionVerifyRequest request) {
-
-
+    public SessionVerifyResponse verify(SessionVerifyRequest request) {
         return loginManager.verify(request);
-
-
-
     }
 
-
-
-
-
-
+    /** Checks the credentials and returns a new session id, or an error. */
     @POST
     @Timed
     @Path("/login")
-    @Produces(MediaType.APPLICATION_JSON)
-    public LoginResponse claims(LoginRequest request) {
-
-
+    public LoginResponse login(LoginRequest request) {
         return loginManager.login(request);
-
-
-
     }
-
-
-
-
-
-
-
-
 }

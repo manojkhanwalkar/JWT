@@ -1,58 +1,65 @@
+/*
+ * LoginResponse
+ *
+ * Reply from POST /login: on success, a session id. On failure, status "failed" and an
+ * error message.
+ */
 package data;
 
 public class LoginResponse {
 
-    public enum Status { sucess , failed};
+    /** Login outcome. The "sucess" spelling is kept for wire compatibility. */
+    public enum Status { sucess, failed }
 
-    String sessionId ;
+    private String sessionId;
 
-    String errorMessage="";
+    private String errorMessage = "";
 
+    private Status status;
 
-    Status status ;
-
+    /** Creates a successful response that carries the new session id. */
     public LoginResponse(String sessionId) {
         this.sessionId = sessionId;
-        status=Status.sucess;
+        this.status = Status.sucess;
     }
 
+    /** No-arg constructor for Jackson. */
+    public LoginResponse() {
+    }
+
+    /** Session id to present to the authorizer. Null on failure. */
     public String getSessionId() {
         return sessionId;
     }
 
+    /** Sets the session id. */
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
     }
 
+    /** Error description. Empty on success. */
     public String getErrorMessage() {
         return errorMessage;
     }
 
+    /** Sets the error message and marks the response as failed. */
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
-        this.status  = Status.failed;
+        this.status = Status.failed;
     }
 
+    /** Returns the login outcome. */
     public Status getStatus() {
         return status;
     }
 
+    /** Sets the login outcome. */
     public void setStatus(Status status) {
         this.status = status;
     }
 
-    public LoginResponse()
-    {
-
-    }
-
-
     @Override
     public String toString() {
-        return "LoginResponse{" +
-                "sessionId='" + sessionId + '\'' +
-                ", errorMessage='" + errorMessage + '\'' +
-                ", status=" + status +
-                '}';
+        return "LoginResponse{sessionId='" + sessionId + "', errorMessage='" + errorMessage + "', status=" + status + '}';
     }
 }

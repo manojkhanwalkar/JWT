@@ -1,41 +1,51 @@
+/*
+ * SessionVerifyResponse
+ *
+ * Reply from POST /verify: whether the session id is live.
+ */
 package data;
 
 public class SessionVerifyResponse {
 
-    public enum Status { Valid , Invalid};
+    /** Session status. */
+    public enum Status { Valid, Invalid }
 
-    Status status;
-    String sessionId;
+    private Status status;
 
+    private String sessionId;
+
+    /** Creates a populated response. */
     public SessionVerifyResponse(Status status, String sessionId) {
         this.status = status;
         this.sessionId = sessionId;
     }
 
+    /** No-arg constructor for Jackson. */
+    public SessionVerifyResponse() {
+    }
+
+    /** Returns whether the session is live. */
     public Status getStatus() {
         return status;
     }
 
+    /** Sets the session status. */
     public void setStatus(Status status) {
         this.status = status;
     }
 
+    /** Session id that was checked. */
     public String getSessionId() {
         return sessionId;
     }
 
+    /** Sets the session id. */
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
     }
 
-    public SessionVerifyResponse() {
-    }
-
     @Override
     public String toString() {
-        return "SessionVerifyResponse{" +
-                "status=" + status +
-                ", sessionId='" + sessionId + '\'' +
-                '}';
+        return "SessionVerifyResponse{status=" + status + ", sessionId='" + sessionId + "'}";
     }
 }

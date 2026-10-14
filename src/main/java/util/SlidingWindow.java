@@ -1,3 +1,17 @@
+/*
+ * SlidingWindow
+ *
+ * Prototype of an ordered, flow-controlled parallel fetcher, the building block for
+ * a "sliding window" file download:
+ *   - Worker threads fetch chunks with sequence numbers in [start, end) in parallel,
+ *     and they may finish out of order.
+ *   - No more than windowSize chunks can be fetched but not yet consumed at once.
+ *     That caps memory use.
+ *   - The consumer calls getSequence(), which always returns the chunks strictly in
+ *     sequence order and blocks until the next one is ready.
+ *
+ * A ChunkTask stands in for the fetch. A real download would make an HTTP /chunk call there.
+ */
 package util;
 
 import data.Chunk;
@@ -5,107 +19,102 @@ import data.Chunk;
 import java.util.PriorityQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class SlidingWindow {
 
-    int start;
-    int end;
-    int windowSize;
+    /** Returned by {@link #getNextToRetrieve()} when every sequence has been handed out. */
+    static final int NO_MORE = -1;
 
+    final int start;
+    final int end;
+    final int windowSize;
 
-    PriorityQueue<Chunk> queue;
+    private final PriorityQueue<Chunk> queue = new PriorityQueue<>();
 
-    Lock lock = new ReentrantLock();
+    private final Lock lock = new ReentrantLock();
+    private final Condition notFull = lock.newCondition();
+    private final Condition notEmpty = lock.newCondition();
 
-    Condition notFull ;
-    Condition notEmpty;
+    /** Number of chunks handed to a worker but not yet consumed. */
+    private int pending = 0;
+    /** Next sequence the consumer is waiting for. */
+    private int nextSequence;
+    /** Next sequence to give to a worker. */
+    private int nextToRetrieve;
 
-    int pending=0;
+    final ExecutorService service;
 
+    /** Creates a window over sequences [start, end) with at most {@code windowSize} chunks in flight. */
     public SlidingWindow(int start, int end, int windowSize) {
+        if (windowSize <= 0) {
+            throw new IllegalArgumentException("windowSize must be positive");
+        }
         this.start = start;
         this.end = end;
         this.windowSize = windowSize;
-        queue = new PriorityQueue<>();
-
-        notFull = lock.newCondition();
-
-        notEmpty = lock.newCondition();
-        nextSequence=0;
-
-        service  = Executors.newFixedThreadPool(windowSize);
+        this.nextSequence = start;
+        this.nextToRetrieve = start;
+        this.service = Executors.newFixedThreadPool(windowSize);
     }
 
-     int nextSequence;
-    int nextToRetrieve=0;
-
-    public Chunk getSequence()
-    {
+    /**
+     * Blocks until the next chunk in order is available, and then returns it. Taking
+     * a chunk frees a window slot, which wakes a waiting worker.
+     *
+     * @return the next chunk, or null if every chunk has been consumed
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public Chunk getSequence() throws InterruptedException {
+        lock.lock();
         try {
-            lock.lock();
-            while (queue.isEmpty() || queue.peek().sequence != nextSequence) {
-                try {
-
-                //    System.out.println("Consumer Waiting for " + nextSequence);
-                    notEmpty.await();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            if (nextSequence >= end) {
+                return null;
             }
-
+            while (queue.isEmpty() || queue.peek().sequence != nextSequence) {
+                notEmpty.await();
+            }
             Chunk chunk = queue.remove();
             nextSequence++;
             pending--;
-            notFull.signalAll();
-
+            notFull.signal();
             return chunk;
         } finally {
             lock.unlock();
         }
     }
 
-
-    public void addChunk(Chunk chunk)
-    {
+    /** Called by a worker when a chunk has been fetched. It wakes the consumer. */
+    public void addChunk(Chunk chunk) {
+        lock.lock();
         try {
-            lock.lock();
-    /*        while (chunk.sequence!=nextSequence) {
-         //   while (pending>=wi) {
-            try {
-                    System.out.println("Producer has " + chunk.sequence + " requires " + nextSequence);
-                    notFull.await();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }*/
-
-           // System.out.println("Producer added " + chunk.sequence);
             queue.add(chunk);
-
             notEmpty.signalAll();
         } finally {
             lock.unlock();
         }
     }
 
-
-    public int getNextToRetrieve()
-    {
+    /**
+     * Claims the next sequence number to fetch. Blocks while the window is full.
+     *
+     * @return the claimed sequence, or {@link #NO_MORE} once all of [start, end) has been
+     *         handed out. Before this fix, the method kept claiming slots after the end
+     *         and blocked forever, so the pool threads were stuck and the JVM never exited.
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public int getNextToRetrieve() throws InterruptedException {
+        lock.lock();
         try {
-
-            lock.lock();
-               while (pending>=windowSize) {
-                   try {
-                         System.out.println(Thread.currentThread().getName() + " Waiting to clear pending" + pending + " " + windowSize);
-                       notFull.await();
-                   } catch (InterruptedException e) {
-                       e.printStackTrace();
-                   }
-
-        }
+            while (nextToRetrieve < end && pending >= windowSize) {
+                notFull.await();
+            }
+            if (nextToRetrieve >= end) {
+                return NO_MORE;
+            }
             pending++;
             return nextToRetrieve++;
         } finally {
@@ -113,64 +122,46 @@ public class SlidingWindow {
         }
     }
 
-
-    final int numTasks = 4;
-    ExecutorService service;
+    /** Starts one fetch task per window slot. Each task schedules the next fetch when it finishes. */
     public void start() {
-
-
-
-            for (int i = 0; i < numTasks; i++) {
-                ChunkTask task = new ChunkTask(getNextToRetrieve(),this);
-                service.submit(task);
-            }
-
+        int initial = Math.min(windowSize, end - start);
+        for (int i = 0; i < initial; i++) {
+            service.submit(new ChunkTask(this));
+        }
     }
 
+    /** Stops all workers immediately. */
     public void end() {
-
         service.shutdownNow();
     }
 
+    /**
+     * Fetches one chunk and then resubmits itself for the next one. Because a task
+     * resubmits itself instead of looping, each pool thread is free between fetches.
+     */
+    static class ChunkTask implements Runnable {
 
-    static class ChunkTask implements Runnable
-    {
+        private final SlidingWindow window;
 
-        int sequence;
-        SlidingWindow window;
-
-        public ChunkTask(int sequence,SlidingWindow window)
-        {
-            this.sequence = sequence;
+        ChunkTask(SlidingWindow window) {
             this.window = window;
         }
 
-        public void run()
-        {
-
-
-        /*   try {
-                Thread.sleep(100);
+        /** Claims a sequence, "fetches" it, and then queues the follow-up task. */
+        @Override
+        public void run() {
+            try {
+                int sequence = window.getNextToRetrieve();
+                if (sequence == NO_MORE) {
+                    return;
+                }
+                window.addChunk(new Chunk(sequence));
+                window.service.submit(new ChunkTask(window));
             } catch (InterruptedException e) {
-                e.printStackTrace();
-            }*/
-
-            window.addChunk(new Chunk(sequence));
-
-
-
-            int next = window.getNextToRetrieve();
-
-            if (next<window.end) {
-
-                ChunkTask task = new ChunkTask(next, window);
-
-                window.service.submit(task);
+                Thread.currentThread().interrupt();
+            } catch (RejectedExecutionException e) {
+                // end() was called. The window is shutting down.
             }
-
         }
     }
-
-
-
 }

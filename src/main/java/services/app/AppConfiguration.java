@@ -1,33 +1,32 @@
+/*
+ * AppConfiguration
+ *
+ * Dropwizard configuration for the app (resource) service, read from App.yml.
+ * Besides the shared settings it adds "filesDirectory", the directory that the
+ * /meta and /chunk download endpoints serve files from.
+ */
 package services.app;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.dropwizard.core.Configuration;
 import jakarta.validation.constraints.NotEmpty;
+import services.ServiceConfiguration;
 
-public class AppConfiguration extends Configuration {
+public class AppConfiguration extends ServiceConfiguration {
+
+    static final String DEFAULT_FILES_DIRECTORY = "/home/manoj/IdeaProjects/JWT/src/main/resources/files/";
+
     @NotEmpty
-    private String template;
+    private String filesDirectory = DEFAULT_FILES_DIRECTORY;
 
-    @NotEmpty
-    private String defaultName = "Stranger";
-
+    /** Directory that holds the files offered for download. */
     @JsonProperty
-    public String getTemplate() {
-        return template;
+    public String getFilesDirectory() {
+        return filesDirectory;
     }
 
+    /** Sets the download directory. */
     @JsonProperty
-    public void setTemplate(String template) {
-        this.template = template;
-    }
-
-    @JsonProperty
-    public String getDefaultName() {
-        return defaultName;
-    }
-
-    @JsonProperty
-    public void setDefaultName(String name) {
-        this.defaultName = name;
+    public void setFilesDirectory(String filesDirectory) {
+        this.filesDirectory = filesDirectory;
     }
 }

@@ -1,175 +1,104 @@
+/*
+ * UserSessionCache
+ *
+ * Process-wide (singleton) store of live login sessions. It is used by the
+ * authenticator service:
+ *   - login puts userid -> sessionId (one active session per user; a new login
+ *     invalidates the previous one)
+ *   - verify checks whether a sessionId is still live
+ *   - logout removes the user's session
+ * A session expires SESSION_TTL after login.
+ *
+ * Expiry is handled by Guava's Cache. It is checked on every read, so an expired
+ * session is never reported as valid, even between clean-up passes. A daemon thread
+ * calls cleanUp() each second, which frees memory and logs expirations.
+ */
 package services.authenticator;
 
-import java.util.*;
-import java.util.concurrent.*;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
+
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 public class UserSessionCache {
 
+    /** How long a session lasts after login. */
+    static final Duration SESSION_TTL = Duration.ofSeconds(5);
 
-    static final long SESSIONTIME = 5000000000l;   // 60 secs before the session will expire.
-
-    PriorityQueue<Tuple> queue = new PriorityQueue<>();
-
-    ScheduledExecutorService service = new ScheduledThreadPoolExecutor(1);
-
-    public synchronized boolean contains(String sessionId) {
-         return currentSessions.contains(sessionId);
+    private static final class Holder {
+        static final UserSessionCache CACHE = new UserSessionCache(SESSION_TTL);
     }
 
+    /** sessionId -> userid, with automatic expiry. */
+    private final Cache<String, String> sessions;
 
-    static class Holder {
-        static UserSessionCache cache = new UserSessionCache();
+    /** userid -> current sessionId. Used to find the session to drop on logout or re-login. */
+    private final ConcurrentMap<String, String> userSessions = new ConcurrentHashMap<>();
+
+    /** Returns the shared, process-wide instance. */
+    public static UserSessionCache getInstance() {
+        return Holder.CACHE;
     }
 
-    public static UserSessionCache getInstance()
-    {
-        return Holder.cache;
+    /** Creates a cache whose sessions last {@code ttl}. Package-private so tests can use short TTLs. */
+    UserSessionCache(Duration ttl) {
+        sessions = CacheBuilder.newBuilder()
+                .expireAfterWrite(ttl)
+                .<String, String>removalListener(n -> {
+                    if (n.getCause() == RemovalCause.EXPIRED) {
+                        userSessions.remove(n.getValue(), n.getKey());
+                        System.out.println("Session expired for user " + n.getValue());
+                    }
+                })
+                .build();
+
+        ScheduledExecutorService cleaner = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "session-evictor");
+            t.setDaemon(true);
+            return t;
+        });
+        cleaner.scheduleAtFixedRate(sessions::cleanUp, 1, 1, TimeUnit.SECONDS);
     }
 
-    private UserSessionCache()
-    {
-
+    /** Returns true if {@code sessionId} belongs to a live, unexpired session. */
+    public boolean contains(String sessionId) {
+        return sessionId != null && sessions.getIfPresent(sessionId) != null;
     }
 
-
-    static class Tuple implements Comparable<Tuple> {
-        String sessionId;
-        long time;
-        String userid;
-
-        public Tuple(String sessionId, long time,String userid) {
-            this.sessionId=sessionId;
-            this.time=time;
-            this.userid = userid;
+    /** Records a new session for {@code userid}. Any earlier session for that user is invalidated. */
+    public synchronized void put(String userid, String sessionId) {
+        String previous = userSessions.put(userid, sessionId);
+        if (previous != null) {
+            sessions.invalidate(previous);
         }
+        sessions.put(sessionId, userid);
+    }
 
-        @Override
-        public int compareTo(Tuple tuple) {
-            return Long.compare(this.time,tuple.time);
-        }
-
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Tuple tuple = (Tuple) o;
-            return time == tuple.time &&
-                    sessionId.equals(tuple.sessionId) &&
-                    userid.equals(tuple.userid);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(sessionId, time, userid);
+    /** Ends {@code userid}'s session, if they have one. */
+    public synchronized void remove(String userid) {
+        String sessionId = userSessions.remove(userid);
+        if (sessionId != null) {
+            sessions.invalidate(sessionId);
         }
     }
 
+    /** Demo: creates ten sessions at random intervals and lets them expire. */
+    public static void main(String[] args) throws Exception {
+        UserSessionCache cache = new UserSessionCache(SESSION_TTL);
 
-     class SessionEvictor implements Runnable
-    {
-
-
-
-        public void run()
-        {
-
-            if (queue.isEmpty())
-                return;
-
-
-            while(true) {
-                final Tuple remove = queue.peek();
-
-                long curr = System.nanoTime();
-
-                if (curr - remove.time > SESSIONTIME) {
-
-                    evict(remove);
-                    queue.remove();
-                }
-                else
-                {
-                    break;
-                }
-
-            }
-        }
-
-
-
-    }
-
-    ScheduledFuture<?> handle ;
-
-    private ConcurrentMap<String,Tuple> usersession = new ConcurrentHashMap<>();
-
-    private Set<String> currentSessions = new HashSet<>();
-
-    public synchronized void put(String userid, String sessionId)
-    {
-        long time = System.nanoTime();
-
-        Tuple tuple = new Tuple(sessionId,time,userid);
-
-        usersession.put(userid,tuple);
-
-        currentSessions.add(sessionId);
-
-        queue.add(tuple);
-
-        if (queue.peek().equals(tuple))
-        {
-            // adjust the timer since the new task goes to the top. else no need to adjust the task.
-
-            if (handle!=null)
-            {
-                handle.cancel(true);
-            }
-
-            SessionEvictor evictor = new SessionEvictor();
-            handle = service.scheduleAtFixedRate(evictor,1,1, TimeUnit.SECONDS);
-
-        }
-
-
-    }
-
-    public synchronized void remove(String userid)
-    {
-        Tuple tuple = usersession.remove(userid);
-        if (tuple!=null)
-        {
-            currentSessions.remove(tuple.sessionId);
-        }
-
-    }
-
-
-    synchronized void evict(Tuple tuple)
-    {
-        System.out.println("Session expired for user  " + tuple.userid);
-        remove(tuple.userid);
-
-    }
-
-
-
-    public static void main(String[] args) throws Exception  {
-
-        UserSessionCache cache = new UserSessionCache();
-
-        Random random = new Random();
-
-        for (int i=0;i<10;i++) {
+        for (int i = 0; i < 10; i++) {
             cache.put("User " + i, UUID.randomUUID().toString());
-            Thread.sleep(random.nextInt(10) * 1000);
-
+            Thread.sleep(ThreadLocalRandom.current().nextInt(10) * 1000L);
         }
 
-        Thread.sleep(500 * 1000); // to trigger evictions
-
-
+        Thread.sleep(SESSION_TTL.toMillis() + 2000); // let the remaining sessions expire
     }
-
 }

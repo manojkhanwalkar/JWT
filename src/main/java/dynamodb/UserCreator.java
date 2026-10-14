@@ -1,3 +1,14 @@
+/*
+ * UserCreator
+ *
+ * Data-access layer for the "JWTUser" DynamoDB table, which is expected on a local
+ * DynamoDB at http://localhost:8000. It can create and delete the table, insert
+ * users, and check a userid/password pair. Running main() seeds and checks the
+ * demo users user0..user9 with passwords password0..password9.
+ *
+ * NOTE: passwords are stored in plaintext. That is fine for a demo but not for real
+ * use. Hash them with a slow KDF such as bcrypt, scrypt, or PBKDF2.
+ */
 package dynamodb;
 
 import com.amazonaws.AmazonServiceException;
@@ -5,140 +16,98 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodbv2.model.*;
+import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
+import com.amazonaws.services.dynamodbv2.model.KeyType;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 public class UserCreator {
 
-    // create table , add a couple of records , validate userid and password .
+    static final String TABLE_NAME = "JWTUser";
 
+    private static final String ENDPOINT = "http://localhost:8000";
+    private static final String REGION = "us-west-2";
 
-    static String table_name = "JWTUser";
+    private final DynamoDBMapper mapper;
 
-    public static void createTable()
-    {
+    /** Connects to the local DynamoDB endpoint. */
+    public UserCreator() {
+        mapper = new DynamoDBMapper(getHandle());
+    }
 
+    /** Builds a DynamoDB client for the local endpoint. */
+    static AmazonDynamoDB getHandle() {
+        return AmazonDynamoDBClientBuilder.standard()
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(ENDPOINT, REGION))
+                .build();
+    }
 
-
-        List<AttributeDefinition> definitions = new ArrayList<>();
-        definitions.add(new AttributeDefinition(
-                "userid", ScalarAttributeType.S));
-       /* definitions.add(new AttributeDefinition(
-                "Identity", ScalarAttributeType.S)); */
-
+    /** Creates the JWTUser table, keyed by "userid". */
+    public static void createTable() {
         CreateTableRequest request = new CreateTableRequest()
-                .withAttributeDefinitions(definitions)
+                .withAttributeDefinitions(new AttributeDefinition("userid", ScalarAttributeType.S))
                 .withKeySchema(new KeySchemaElement("userid", KeyType.HASH))
-                .withProvisionedThroughput(new ProvisionedThroughput(
-                        new Long(10), new Long(10)))
-                .withTableName(table_name);
-
-        final AmazonDynamoDB ddb = getHandle();
-
-
-
+                .withProvisionedThroughput(new ProvisionedThroughput(10L, 10L))
+                .withTableName(TABLE_NAME);
 
         try {
-            CreateTableResult result = ddb.createTable(request);
-            System.out.println(result);
+            System.out.println(getHandle().createTable(request));
         } catch (AmazonServiceException e) {
             System.err.println(e.getErrorMessage());
-            System.exit(1);
+            throw e;
         }
-        System.out.println("Done!");
     }
 
-
-
+    /** Drops the JWTUser table. */
     public static void deleteTable() {
-
-        final AmazonDynamoDB ddb = getHandle();
-
-
-        DeleteTableResult result = ddb.deleteTable(table_name);
-
-        System.out.println(result);
+        System.out.println(getHandle().deleteTable(TABLE_NAME));
     }
 
-    public UserCreator() {
-
-        ddb = getHandle();
-        mapper = new DynamoDBMapper(ddb);
+    /** Inserts or overwrites a user record. */
+    public void insertUser(String userid, String password) {
+        mapper.save(new UserRecord(userid, password));
     }
 
-    DynamoDBMapper mapper;
-
-    AmazonDynamoDB ddb;
-
-    static AmazonDynamoDB getHandle()
-    {
-        AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:8000", "us-west-2"))
-                .build();
-
-        return ddb;
-
+    /**
+     * Returns true if {@code userid} exists and its stored password equals
+     * {@code password}. The comparison takes constant time, so response timing does
+     * not reveal how much of the password matched.
+     */
+    public boolean validate(String userid, String password) {
+        if (userid == null || password == null) {
+            return false;
+        }
+        UserRecord userRecord = mapper.load(UserRecord.class, userid);
+        return userRecord != null && userRecord.getPassword() != null
+                && MessageDigest.isEqual(userRecord.getPassword().getBytes(StandardCharsets.UTF_8),
+                                         password.getBytes(StandardCharsets.UTF_8));
     }
 
-
-    public void insertUser(String userid,String password)
-    {
-
-
-        UserRecord userRecord = new UserRecord();
-
-        userRecord.setUserid(userid);
-        userRecord.setPassword(password);
-
-
-
-        mapper.save(userRecord);
-
-    }
-
-
+    /**
+     * Dev harness. Pass "create" to create the table, "seed" to insert the demo users,
+     * or nothing to check user0..user10 (user10 should fail).
+     */
     public static void main(String[] args) {
-
-      //  createTable();
+        String command = args.length > 0 ? args[0] : "validate";
+        if (command.equals("create")) {
+            createTable();
+            return;
+        }
 
         UserCreator creator = new UserCreator();
-
-    /*    for (int i=0;i<10;i++)
-        {
-            creator.insertUser("user"+i, "password"+i);
-        }*/
-
-        for (int i=0;i<=10;i++)
-        {
-           System.out.println( "================>>>" + creator.validate("user"+i, "password"+i));
+        if (command.equals("seed")) {
+            for (int i = 0; i < 10; i++) {
+                creator.insertUser("user" + i, "password" + i);
+            }
+            return;
         }
-
-    }
-
-
-
-    public  boolean validate(String userid,String password)
-    {
-
-
-        UserRecord userRecord = mapper.load(UserRecord.class,userid);
-
-        if (userRecord!=null)
-        {
-            if (userRecord.getPassword().equals(password))
-                return true;
+        for (int i = 0; i <= 10; i++) {
+            System.out.println("user" + i + " valid=" + creator.validate("user" + i, "password" + i));
         }
-
-
-        return false;
-
-
-
     }
-
-
-
 }
