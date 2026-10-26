@@ -6,8 +6,9 @@
  * users, and check a userid/password pair. Running main() seeds and checks the
  * demo users user0..user9 with passwords password0..password9.
  *
- * NOTE: passwords are stored in plaintext. That is fine for a demo but not for real
- * use. Hash them with a slow KDF such as bcrypt, scrypt, or PBKDF2.
+ * Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes (see PasswordHasher).
+ * Records written by older versions held plaintext passwords; those no longer
+ * validate, so re-seed the table ("seed") after upgrading.
  */
 package dynamodb;
 
@@ -22,9 +23,6 @@ import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 public class UserCreator {
 
@@ -68,24 +66,26 @@ public class UserCreator {
         System.out.println(getHandle().deleteTable(TABLE_NAME));
     }
 
-    /** Inserts or overwrites a user record. */
+    /** Inserts or overwrites a user record. Only a salted hash of the password is stored. */
     public void insertUser(String userid, String password) {
-        mapper.save(new UserRecord(userid, password));
+        mapper.save(new UserRecord(userid, PasswordHasher.hash(password)));
     }
 
     /**
-     * Returns true if {@code userid} exists and its stored password equals
-     * {@code password}. The comparison takes constant time, so response timing does
-     * not reveal how much of the password matched.
+     * Returns true if {@code userid} exists and {@code password} matches its stored
+     * hash. An unknown user costs the same hashing work, so timing does not reveal
+     * which user ids exist.
      */
     public boolean validate(String userid, String password) {
         if (userid == null || password == null) {
             return false;
         }
         UserRecord userRecord = mapper.load(UserRecord.class, userid);
-        return userRecord != null && userRecord.getPassword() != null
-                && MessageDigest.isEqual(userRecord.getPassword().getBytes(StandardCharsets.UTF_8),
-                                         password.getBytes(StandardCharsets.UTF_8));
+        if (userRecord == null) {
+            PasswordHasher.dummyVerify(password);
+            return false;
+        }
+        return PasswordHasher.verify(password, userRecord.getPassword());
     }
 
     /**

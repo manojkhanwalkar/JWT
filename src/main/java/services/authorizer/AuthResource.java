@@ -21,11 +21,16 @@ import util.Connection;
 import util.JSONUtil;
 import util.JWSSignUtil;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.UUID;
 
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
 public class AuthResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AuthResource.class);
 
     /** Authenticator service. Reused across requests: Connection shares one pooled HttpClient. */
     private final Connection login = new Connection("https://localhost:8480/");
@@ -48,13 +53,14 @@ public class AuthResource {
             String verifyJson = login.sendSimple(JSONUtil.toJSON(new SessionVerifyRequest(request.getSessionId())), "verify");
             SessionVerifyResponse verifyResponse = JSONUtil.fromJSON(verifyJson, SessionVerifyResponse.class);
 
-            if (verifyResponse.getStatus() == SessionVerifyResponse.Status.Valid) {
-                return new TokenResponse(TokenResponse.Status.Valid, jwsSignUtil.jwsSign("Dummy Token"));
+            if (verifyResponse.getStatus() == SessionVerifyResponse.Status.Valid && verifyResponse.getUserid() != null) {
+                // Short-lived token bound to the user, issuer and audience (see JWSSignUtil#issueToken).
+                return new TokenResponse(TokenResponse.Status.Valid, jwsSignUtil.issueToken(verifyResponse.getUserid()));
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.warn("Token request failed: {}", e.toString());
         }
         return new TokenResponse(TokenResponse.Status.Invalid, UUID.randomUUID().toString());
     }

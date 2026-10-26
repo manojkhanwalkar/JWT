@@ -19,6 +19,12 @@ public class SessionKeyCache {
     /** How long a negotiated session key stays usable if the client never calls /eservice. */
     static final Duration DEFAULT_TTL = Duration.ofMinutes(5);
 
+    /**
+     * Upper bound on pending sessions. /keyexchange is unauthenticated, so without a
+     * cap a client could fill the heap within one TTL. Oldest entries are evicted first.
+     */
+    static final long MAX_SESSIONS = 100_000;
+
     private final Cache<String, DHUtil> cache;
 
     /** Creates a cache whose entries expire {@link #DEFAULT_TTL} after they are written. */
@@ -28,7 +34,7 @@ public class SessionKeyCache {
 
     /** Creates a cache whose entries expire {@code ttl} after they are written. */
     public SessionKeyCache(Duration ttl) {
-        this.cache = CacheBuilder.newBuilder().expireAfterWrite(ttl).build();
+        this.cache = CacheBuilder.newBuilder().expireAfterWrite(ttl).maximumSize(MAX_SESSIONS).build();
     }
 
     /** Stores the session key for a newly negotiated session. */

@@ -4,7 +4,7 @@
  * One side of an Elliptic-Curve Diffie-Hellman (ECDH) session. It is built from
  * our own key pair. When the peer's public key arrives it derives the shared secret,
  * hashes that secret into an AES-256 session key, and then encrypts and decrypts
- * messages with AES/CBC/PKCS5Padding.
+ * messages with AES-GCM (authenticated encryption: tampered ciphertext is rejected).
  *
  * The client (util.Connection#esend) and the server (util.KeyExchangeManager) both
  * use this class. Because both sides run the same derivation, they end up with the
@@ -14,7 +14,7 @@ package util;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -27,10 +27,13 @@ import java.util.Base64;
 
 public class DHUtil {
 
-    private static final String CIPHER = "AES/CBC/PKCS5Padding";
+    private static final String CIPHER = "AES/GCM/NoPadding";
 
-    /** AES block size. It is also the IV length for CBC mode. */
-    public static final int IV_LENGTH = 16;
+    /** Recommended GCM nonce length (96 bits). A fresh random one is used for every message. */
+    public static final int IV_LENGTH = 12;
+
+    /** GCM authentication tag length in bits. */
+    private static final int TAG_BITS = 128;
 
     private final PublicKey publickey;
     private final PrivateKey privateKey;
@@ -71,7 +74,7 @@ public class DHUtil {
     public String encrypt(String msg, byte[] iv) {
         try {
             Cipher cipher = Cipher.getInstance(CIPHER);
-            cipher.init(Cipher.ENCRYPT_MODE, requireSessionKey(), new IvParameterSpec(iv));
+            cipher.init(Cipher.ENCRYPT_MODE, requireSessionKey(), gcmSpec(iv));
             byte[] encrypted = cipher.doFinal(msg.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(encrypted);
         } catch (GeneralSecurityException e) {
@@ -88,10 +91,10 @@ public class DHUtil {
     public String decrypt(String encryptedData, String iv) {
         try {
             Cipher cipher = Cipher.getInstance(CIPHER);
-            cipher.init(Cipher.DECRYPT_MODE, requireSessionKey(), new IvParameterSpec(Base64.getDecoder().decode(iv)));
+            cipher.init(Cipher.DECRYPT_MODE, requireSessionKey(), gcmSpec(Base64.getDecoder().decode(iv)));
             byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
             return new String(decrypted, StandardCharsets.UTF_8);
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | IllegalArgumentException | NullPointerException e) {
             throw new IllegalStateException("Decryption failed", e);
         }
     }
@@ -106,6 +109,13 @@ public class DHUtil {
         byte[] iv = new byte[IV_LENGTH];
         CryptUtil.SECURE_RANDOM.nextBytes(iv);
         return iv;
+    }
+
+    private static GCMParameterSpec gcmSpec(byte[] iv) {
+        if (iv == null || iv.length != IV_LENGTH) {
+            throw new IllegalArgumentException("IV must be " + IV_LENGTH + " bytes");
+        }
+        return new GCMParameterSpec(TAG_BITS, iv);
     }
 
     private Key requireSessionKey() {

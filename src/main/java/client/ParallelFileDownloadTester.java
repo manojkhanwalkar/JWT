@@ -35,10 +35,10 @@ public class ParallelFileDownloadTester {
     private static final Connection APP = new Connection("https://localhost:8380/");
 
     /** Fetches bytes [start, end) of {@code fileName} from /chunk. */
-    static String fetchChunk(String fileName, int start, int end) {
+    static String fetchChunk(String fileName, String jwt, int start, int end) {
         try {
             System.out.println(Thread.currentThread().getName() + " " + start + " " + end);
-            String json = APP.sendSimple(JSONUtil.toJSON(new ChunkRequest(fileName, "TODO", start, end)), "chunk");
+            String json = APP.sendSimple(JSONUtil.toJSON(new ChunkRequest(fileName, jwt, start, end)), "chunk");
             return JSONUtil.fromJSON(json, ChunkResponse.class).getContents();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -52,7 +52,8 @@ public class ParallelFileDownloadTester {
     public static void main(String[] args) throws Exception {
         String fileName = args.length > 0 ? args[0] : "File1";
 
-        String metaJson = APP.sendSimple(JSONUtil.toJSON(new FileMetaRequest(fileName, "TODO")), "meta");
+        String jwt = TokenClient.obtainToken();
+        String metaJson = APP.sendSimple(JSONUtil.toJSON(new FileMetaRequest(fileName, jwt)), "meta");
         FileMetaResponse metaResponse = JSONUtil.fromJSON(metaJson, FileMetaResponse.class);
         System.out.println(metaJson);
 
@@ -65,7 +66,7 @@ public class ParallelFileDownloadTester {
             List<CompletableFuture<String>> chunks = new ArrayList<>();
             for (int start = 0; start < fileSize; start += chunkSize) {
                 final int s = start, e = Math.min(start + chunkSize, fileSize);
-                chunks.add(CompletableFuture.supplyAsync(() -> fetchChunk(fileName, s, e), service));
+                chunks.add(CompletableFuture.supplyAsync(() -> fetchChunk(fileName, jwt, s, e), service));
             }
 
             // The futures are joined in submission order, so the chunks are written in file order.

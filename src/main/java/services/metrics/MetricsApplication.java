@@ -8,7 +8,9 @@
 package services.metrics;
 
 import io.dropwizard.core.Application;
+import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
+import services.ServiceConfiguration;
 
 public class MetricsApplication extends Application<MetricsConfiguration> {
 
@@ -21,6 +23,12 @@ public class MetricsApplication extends Application<MetricsConfiguration> {
     @Override
     public String getName() {
         return "Metrics Application";
+    }
+
+    /** Resolves ${ENV_VAR} references (such as the keystore password) in the YAML config. */
+    @Override
+    public void initialize(Bootstrap<MetricsConfiguration> bootstrap) {
+        ServiceConfiguration.enableEnvironmentSubstitution(bootstrap);
     }
 
     /** Registers the REST resource with Jersey. */

@@ -11,8 +11,10 @@
  * one starts its own selector thread and SSL context, so the old pattern of one
  * client per Connection (and per request in some callers) was expensive.
  *
- * Hostname verification is turned off because the services use a self-signed
- * localhost certificate. Only do this in development.
+ * Hostname verification is ON by default. For a self-signed certificate whose
+ * name does not match the host, it can be turned off for local development only
+ * with -Djwt.tls.insecureSkipHostnameVerification=true. Never do this in a real
+ * deployment: services fetch the JWT verification key over these connections.
  */
 package util;
 
@@ -42,9 +44,15 @@ public class Connection {
         this.target = target;
     }
 
+    /** Opt-in system property that disables hostname verification (development only). */
+    static final String INSECURE_SKIP_HOSTNAME_VERIFICATION = "jwt.tls.insecureSkipHostnameVerification";
+
     /** Must run before the first HttpClient is built, which is why it is called from the static initializer. */
     private static HttpClient createClient() {
-        System.setProperty("jdk.internal.httpclient.disableHostnameVerification", Boolean.TRUE.toString());
+        if (Boolean.getBoolean(INSECURE_SKIP_HOSTNAME_VERIFICATION)) {
+            System.err.println("WARNING: TLS hostname verification disabled (" + INSECURE_SKIP_HOSTNAME_VERIFICATION + ")");
+            System.setProperty("jdk.internal.httpclient.disableHostnameVerification", Boolean.TRUE.toString());
+        }
         return HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
     }
 

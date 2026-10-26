@@ -8,7 +8,9 @@
 package services.app;
 
 import io.dropwizard.core.Application;
+import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
+import services.ServiceConfiguration;
 
 public class AppApplication extends Application<AppConfiguration> {
 
@@ -21,6 +23,12 @@ public class AppApplication extends Application<AppConfiguration> {
     @Override
     public String getName() {
         return "App Application";
+    }
+
+    /** Resolves ${ENV_VAR} references (such as the keystore password) in the YAML config. */
+    @Override
+    public void initialize(Bootstrap<AppConfiguration> bootstrap) {
+        ServiceConfiguration.enableEnvironmentSubstitution(bootstrap);
     }
 
     /** Registers the REST resource with Jersey. */
