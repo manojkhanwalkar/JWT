@@ -13,6 +13,7 @@ import data.LogoutRequest;
 import data.LogoutResponse;
 import data.SessionVerifyRequest;
 import data.SessionVerifyResponse;
+import dynamodb.PasswordHasher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,9 @@ public class LoginManager {
      */
     public LoginResponse login(LoginRequest request) {
         String userid = request.getUserid();
-        if (throttle.isLocked(userid)) {
+        if (!throttle.tryAcquire(userid)) {
+            // Same hashing work as a real check, so response time does not reveal the lock.
+            PasswordHasher.dummyVerify(request.getPassword());
             LOG.warn("Login rejected for locked-out user '{}'", sanitize(userid));
         } else if (manager.validate(userid, request.getPassword())) {
             throttle.recordSuccess(userid);
@@ -45,7 +48,6 @@ public class LoginManager {
             cache.put(userid, sessionId);
             return new LoginResponse(sessionId);
         } else {
-            throttle.recordFailure(userid);
             LOG.warn("Failed login for user '{}'", sanitize(userid));
         }
         LoginResponse response = new LoginResponse();

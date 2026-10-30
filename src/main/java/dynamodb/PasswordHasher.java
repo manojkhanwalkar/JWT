@@ -13,6 +13,8 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public final class PasswordHasher {
 
@@ -23,6 +25,14 @@ public final class PasswordHasher {
     private static final int HASH_BITS = 256;
 
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    /**
+     * Caps concurrent hashing at one per core, so a flood of /login requests (which
+     * no per-user lockout can stop) cannot take every CPU. A check that cannot get
+     * a slot within HASH_WAIT fails closed.
+     */
+    private static final Semaphore HASH_SLOTS = new Semaphore(Runtime.getRuntime().availableProcessors(), true);
+    private static final long HASH_WAIT_MS = 5_000;
 
     /** Hash of a random password, checked when a user does not exist so the timing matches. */
     private static final String DUMMY_HASH = hash(Base64.getEncoder().encodeToString(RANDOM.generateSeed(16)));
@@ -60,9 +70,26 @@ public final class PasswordHasher {
             if (iterations < 1 || iterations > 10_000_000) {
                 return false;
             }
-            return MessageDigest.isEqual(expected, pbkdf2(password.toCharArray(), salt, iterations));
+            return MessageDigest.isEqual(expected, limitedPbkdf2(password.toCharArray(), salt, iterations));
         } catch (IllegalArgumentException e) {
             return false;
+        }
+    }
+
+    /** pbkdf2 under HASH_SLOTS. Returns an empty array (never a match) if no slot frees up in time. */
+    private static byte[] limitedPbkdf2(char[] password, byte[] salt, int iterations) {
+        try {
+            if (!HASH_SLOTS.tryAcquire(HASH_WAIT_MS, TimeUnit.MILLISECONDS)) {
+                return new byte[0];
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new byte[0];
+        }
+        try {
+            return pbkdf2(password, salt, iterations);
+        } finally {
+            HASH_SLOTS.release();
         }
     }
 

@@ -122,7 +122,7 @@ public class AppResource {
     @Timed
     @Path("/service")
     public AppResponse claims(AppRequest request) {
-        if (verifier().verifyJWS(request.getToken())) {
+        if (availableVerifier().verifyJWS(request.getToken())) {
             String payload = request.getDummy() == null ? "" : request.getDummy().toUpperCase();
             return new AppResponse(AppResponse.Status.Valid, payload);
         }
@@ -204,18 +204,21 @@ public class AppResource {
         return KeyExchangeManager.encryptResponse(responseStr, request);
     }
 
+    /** Returns the verifier, or fails the request with 503 if the authorizer's key cannot be fetched (fail closed). */
+    private JWSVerifyUtil availableVerifier() {
+        try {
+            return verifier();
+        } catch (RuntimeException e) {
+            throw new ServiceUnavailableException("Token verification key unavailable");
+        }
+    }
+
     /**
      * Rejects the request with 401 unless {@code jwt} is a valid token from the
      * authorizer, or with 503 if the authorizer's key cannot be fetched (fail closed).
      */
     private void requireValidToken(String jwt) {
-        JWSVerifyUtil verifier;
-        try {
-            verifier = verifier();
-        } catch (RuntimeException e) {
-            throw new ServiceUnavailableException("Token verification key unavailable");
-        }
-        if (!verifier.verifyJWS(jwt)) {
+        if (!availableVerifier().verifyJWS(jwt)) {
             throw new NotAuthorizedException("Valid JWT required", "Bearer");
         }
     }

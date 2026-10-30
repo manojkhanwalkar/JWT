@@ -30,8 +30,7 @@ public class FileDownloadTester {
 
         Connection app = new Connection("https://localhost:8380/");
 
-        String jwt = TokenClient.obtainToken();
-        String metaJson = app.sendSimple(JSONUtil.toJSON(new FileMetaRequest(fileName, jwt)), "meta");
+        String metaJson = app.sendSimple(JSONUtil.toJSON(new FileMetaRequest(fileName, TokenClient.currentToken())), "meta");
         FileMetaResponse metaResponse = JSONUtil.fromJSON(metaJson, FileMetaResponse.class);
         System.out.println(metaJson);
 
@@ -43,7 +42,7 @@ public class FileDownloadTester {
         try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.ISO_8859_1)) {
             for (int start = 0; start < fileSize; start += chunkSize) {
                 int end = Math.min(start + chunkSize, fileSize);
-                String chunkJson = app.sendSimple(JSONUtil.toJSON(new ChunkRequest(fileName, jwt, start, end)), "chunk");
+                String chunkJson = app.sendSimple(JSONUtil.toJSON(new ChunkRequest(fileName, TokenClient.currentToken(), start, end)), "chunk");
                 writer.write(JSONUtil.fromJSON(chunkJson, ChunkResponse.class).getContents());
             }
         }

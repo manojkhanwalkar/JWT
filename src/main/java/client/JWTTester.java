@@ -11,30 +11,19 @@ package client;
 
 import data.AppRequest;
 import data.AppResponse;
-import data.LoginRequest;
-import data.LoginResponse;
-import data.TokenRequest;
-import data.TokenResponse;
 import util.Connection;
 import util.JSONUtil;
 
 public class JWTTester {
 
-    /** Runs login, then token, then service, and prints each response. */
+    /** Logs in and gets a token (TokenClient), then calls the service and prints the response. */
     public static void main(String[] args) throws Exception {
-        Connection login = new Connection("https://localhost:8480/");
-        Connection auth = new Connection("https://localhost:8280/");
         Connection app = new Connection("https://localhost:8380/");
 
-        String loginJson = login.sendSimple(JSONUtil.toJSON(new LoginRequest("user1", "password1")), "login");
-        LoginResponse response = JSONUtil.fromJSON(loginJson, LoginResponse.class);
-        System.out.println(loginJson);
+        String jwt = TokenClient.obtainToken();
+        System.out.println("Token: " + jwt);
 
-        String tokenJson = auth.sendSimple(JSONUtil.toJSON(new TokenRequest(response.getSessionId())), "token");
-        TokenResponse tokenResponse = JSONUtil.fromJSON(tokenJson, TokenResponse.class);
-        System.out.println(tokenResponse);
-
-        String appJson = app.sendSimple(JSONUtil.toJSON(new AppRequest(tokenResponse.getJwt(), "Dummy service request")), "service");
+        String appJson = app.sendSimple(JSONUtil.toJSON(new AppRequest(jwt, "Dummy service request")), "service");
         AppResponse appResponse = JSONUtil.fromJSON(appJson, AppResponse.class);
         System.out.println(appResponse);
     }

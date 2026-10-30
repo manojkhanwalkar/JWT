@@ -31,7 +31,7 @@ public class LogoutRequest {
         this.userid = userid;
     }
 
-    /** The session id. Informational only; logout goes by userid. */
+    /** The session id. Required: logout succeeds only if it is the user's current session. */
     public String getSessionId() {
         return sessionId;
     }
