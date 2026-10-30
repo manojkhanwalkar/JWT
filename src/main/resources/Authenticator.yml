@@ -7,6 +7,10 @@ server:
   applicationConnectors:
     - type: https
       port: 8480
+      # The /login rate limit is keyed by client IP. Keep this false so the IP is the TCP
+      # peer, not a client-supplied X-Forwarded-For. Behind a trusted reverse proxy, set it
+      # to true and make sure the proxy overwrites (not appends to) the header.
+      useForwardedHeaders: false
       keyStorePath: /home/manoj/IdeaProjects/securitytest/src/main/resources/mytestkey.jks
       keyStorePassword: ${JWT_KEYSTORE_PASSWORD}
     #this requires the alpn-boot library on the JVM's boot classpath

@@ -2,7 +2,8 @@
  * LoginResource
  *
  * REST endpoints of the authenticator service:
- *   POST /login   check credentials and get a session id
+ *   POST /login   check credentials and get a session id (rate limited per
+ *                 client IP by LoginRateLimitFilter)
  *   POST /verify  check whether a session id is still valid (called by the authorizer)
  *   POST /logout  end a user's session
  */
