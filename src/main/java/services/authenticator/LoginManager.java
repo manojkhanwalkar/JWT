@@ -15,6 +15,8 @@ import data.SessionVerifyRequest;
 import data.SessionVerifyResponse;
 import dynamodb.PasswordHasher;
 
+import util.LogText;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,14 +43,14 @@ public class LoginManager {
         if (!throttle.tryAcquire(userid)) {
             // Same hashing work as a real check, so response time does not reveal the lock.
             PasswordHasher.dummyVerify(request.getPassword());
-            LOG.warn("Login rejected for locked-out user '{}'", sanitize(userid));
+            LOG.warn("Login rejected for locked-out user '{}'", LogText.sanitize(userid));
         } else if (manager.validate(userid, request.getPassword())) {
             throttle.recordSuccess(userid);
             String sessionId = UUID.randomUUID().toString();
             cache.put(userid, sessionId);
             return new LoginResponse(sessionId);
         } else {
-            LOG.warn("Failed login for user '{}'", sanitize(userid));
+            LOG.warn("Failed login for user '{}'", LogText.sanitize(userid));
         }
         LoginResponse response = new LoginResponse();
         response.setErrorMessage("User login failed");
@@ -72,15 +74,6 @@ public class LoginManager {
                 request.getSessionId());
         response.setUserid(userid);
         return response;
-    }
-
-    /** Strips CR/LF and caps the length so a user id cannot forge log lines. */
-    private static String sanitize(String value) {
-        if (value == null) {
-            return "null";
-        }
-        String clean = value.replaceAll("[\\r\\n\\t]", "_");
-        return clean.length() > 64 ? clean.substring(0, 64) + "..." : clean;
     }
 
     /** Demo: logs in, checks the session, waits past the TTL, and checks it again. Needs local DynamoDB. */

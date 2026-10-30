@@ -8,9 +8,12 @@
 package services.authenticator;
 
 import io.dropwizard.core.Application;
+import jakarta.servlet.DispatcherType;
 import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
 import services.ServiceConfiguration;
+
+import java.util.EnumSet;
 
 public class LoginApplication extends Application<LoginConfiguration> {
 
@@ -31,9 +34,12 @@ public class LoginApplication extends Application<LoginConfiguration> {
         ServiceConfiguration.enableEnvironmentSubstitution(bootstrap);
     }
 
-    /** Registers the REST resource with Jersey. */
+    /** Registers the REST resource with Jersey, behind the per-IP rate limit on /login. */
     @Override
     public void run(LoginConfiguration configuration, Environment environment) {
+        environment.servlets()
+                .addFilter("login-rate-limit", new LoginRateLimitFilter())
+                .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), true, "/login");
         environment.jersey().register(new LoginResource());
     }
 }

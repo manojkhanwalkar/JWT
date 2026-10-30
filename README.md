@@ -42,8 +42,9 @@ and is bound to `127.0.0.1` only, because it has no authentication.
    `UserSessionCache`. Sessions expire 5 seconds after login, and logging in again replaces
    the previous session. After 5 failed logins a user id is locked out for 15 minutes
    (`LoginThrottle`). Each client IP (IPv6: per /64) also gets 10 login attempts in a burst,
-   refilled at one every 6 seconds; over that, `/login` returns 429 with `Retry-After`
-   before any password check (`LoginRateLimiter`). `/logout` needs both the user id and that
+   refilled at one every 6 seconds, and each IPv6 /48 shares a bucket of 100. Over that,
+   `/login` returns 429 with `Retry-After` before the request reaches Jersey
+   (`LoginRateLimitFilter`, `LoginRateLimiter`). `/logout` needs both the user id and that
    user's current session id.
 2. **Authorizer** `/token` asks the authenticator's `/verify` whether the session is live.
    If it is, it returns a JWT signed with ES256 (`util.JWSSignUtil`) carrying `iss`, `aud`,
