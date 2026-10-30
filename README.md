@@ -41,7 +41,10 @@ and is bound to `127.0.0.1` only, because it has no authentication.
    passwords are stored as salted PBKDF2-HMAC-SHA256 hashes) and creates a session in
    `UserSessionCache`. Sessions expire 5 seconds after login, and logging in again replaces
    the previous session. After 5 failed logins a user id is locked out for 15 minutes
-   (`LoginThrottle`). `/logout` needs both the user id and that user's current session id.
+   (`LoginThrottle`). Each client IP (IPv6: per /64) also gets 10 login attempts in a burst,
+   refilled at one every 6 seconds; over that, `/login` returns 429 with `Retry-After`
+   before any password check (`LoginRateLimiter`). `/logout` needs both the user id and that
+   user's current session id.
 2. **Authorizer** `/token` asks the authenticator's `/verify` whether the session is live.
    If it is, it returns a JWT signed with ES256 (`util.JWSSignUtil`) carrying `iss`, `aud`,
    `sub` (the user id), `iat`, `exp` (5 minutes) and `jti`.
@@ -116,5 +119,7 @@ You can override any YAML value with `-Ddw.<path>=…`, for example
 ## Known limitations (demo-grade)
 * JWTs cannot be revoked before they expire (5 minutes); logout ends the session, not issued tokens.
 * The ECDHE server key is not signed, so the key exchange relies on TLS for authenticity.
-* Login lockout is per user id only; add per-IP rate limiting in front of a real deployment.
+* The login rate limit uses the TCP peer address (`useForwardedHeaders: false`). Behind a reverse
+  proxy every client shares the proxy's IP: enable forwarded headers only if the proxy overwrites them.
+  Limits are in memory, per authenticator instance.
 * Service URLs and several file paths are hard-coded for a local developer machine.
