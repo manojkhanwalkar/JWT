@@ -73,6 +73,11 @@ public class UserSessionCache {
         return sessionId != null && sessions.getIfPresent(sessionId) != null;
     }
 
+    /** Returns the user id that owns a live {@code sessionId}, or null. */
+    public String userFor(String sessionId) {
+        return sessionId == null ? null : sessions.getIfPresent(sessionId);
+    }
+
     /** Records a new session for {@code userid}. Any earlier session for that user is invalidated. */
     public synchronized void put(String userid, String sessionId) {
         String previous = userSessions.put(userid, sessionId);
@@ -82,7 +87,21 @@ public class UserSessionCache {
         sessions.put(sessionId, userid);
     }
 
-    /** Ends {@code userid}'s session, if they have one. */
+    /**
+     * Ends {@code userid}'s session, but only if {@code sessionId} is that user's
+     * current session. Knowing a user id alone is not enough to log someone out.
+     *
+     * @return true if a session was ended
+     */
+    public synchronized boolean remove(String userid, String sessionId) {
+        if (userid == null || sessionId == null || !userSessions.remove(userid, sessionId)) {
+            return false;
+        }
+        sessions.invalidate(sessionId);
+        return true;
+    }
+
+    /** Ends {@code userid}'s session, if they have one. Server-side use only. */
     public synchronized void remove(String userid) {
         String sessionId = userSessions.remove(userid);
         if (sessionId != null) {

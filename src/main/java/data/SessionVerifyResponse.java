@@ -14,6 +14,9 @@ public class SessionVerifyResponse {
 
     private String sessionId;
 
+    /** Owner of the session; set only when the status is Valid. */
+    private String userid;
+
     /** Creates a populated response. */
     public SessionVerifyResponse(Status status, String sessionId) {
         this.status = status;
@@ -44,8 +47,18 @@ public class SessionVerifyResponse {
         this.sessionId = sessionId;
     }
 
+    /** User id that owns the session, or null if the session is not valid. */
+    public String getUserid() {
+        return userid;
+    }
+
+    /** Sets the owning user id. */
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+
     @Override
     public String toString() {
-        return "SessionVerifyResponse{status=" + status + ", sessionId='" + sessionId + "'}";
+        return "SessionVerifyResponse{status=" + status + ", sessionId='" + sessionId + "', userid='" + userid + "'}";
     }
 }

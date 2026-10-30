@@ -8,14 +8,16 @@ server:
     - type: https
       port: 8480
       keyStorePath: /home/manoj/IdeaProjects/securitytest/src/main/resources/mytestkey.jks
-      keyStorePassword: password
+      keyStorePassword: ${JWT_KEYSTORE_PASSWORD}
     #this requires the alpn-boot library on the JVM's boot classpath
     #- type: h2
     #  port: 8445
     #  keyStorePath: example.keystore
     #  keyStorePassword: example
   adminConnectors:
+    # Admin (metrics, health checks, tasks) has no authentication: keep it on loopback.
     - type: https
+      bindHost: 127.0.0.1
       port: 8481
       keyStorePath: /home/manoj/IdeaProjects/securitytest/src/main/resources/mytestkey.jks
-      keyStorePassword: password
+      keyStorePassword: ${JWT_KEYSTORE_PASSWORD}

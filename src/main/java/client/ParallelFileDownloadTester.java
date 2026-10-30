@@ -38,7 +38,7 @@ public class ParallelFileDownloadTester {
     static String fetchChunk(String fileName, int start, int end) {
         try {
             System.out.println(Thread.currentThread().getName() + " " + start + " " + end);
-            String json = APP.sendSimple(JSONUtil.toJSON(new ChunkRequest(fileName, "TODO", start, end)), "chunk");
+            String json = APP.sendSimple(JSONUtil.toJSON(new ChunkRequest(fileName, TokenClient.currentToken(), start, end)), "chunk");
             return JSONUtil.fromJSON(json, ChunkResponse.class).getContents();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -52,7 +52,7 @@ public class ParallelFileDownloadTester {
     public static void main(String[] args) throws Exception {
         String fileName = args.length > 0 ? args[0] : "File1";
 
-        String metaJson = APP.sendSimple(JSONUtil.toJSON(new FileMetaRequest(fileName, "TODO")), "meta");
+        String metaJson = APP.sendSimple(JSONUtil.toJSON(new FileMetaRequest(fileName, TokenClient.currentToken())), "meta");
         FileMetaResponse metaResponse = JSONUtil.fromJSON(metaJson, FileMetaResponse.class);
         System.out.println(metaJson);
 

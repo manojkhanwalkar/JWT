@@ -49,16 +49,24 @@ public class KeyExchangeManager {
     }
 
     /**
-     * Decrypts a client message with the key negotiated for its session id.
+     * Decrypts a client message with the key negotiated for its session id. If the
+     * message does not decrypt (wrong key, tampered data), the session is dropped so
+     * it cannot be probed again.
      *
      * @throws IllegalArgumentException if the session is unknown or has expired
+     * @throws IllegalStateException    if decryption fails
      */
     public static String decryptRequest(EncryptedMessage request) {
         DHUtil util = sessionKeyCache.get(request.getSessionId());
         if (util == null) {
-            throw new IllegalArgumentException("Unknown or expired session " + request.getSessionId());
+            throw new IllegalArgumentException("Unknown or expired session");
         }
-        return util.decrypt(request.getMessage(), request.getIv());
+        try {
+            return util.decrypt(request.getMessage(), request.getIv());
+        } catch (RuntimeException e) {
+            sessionKeyCache.use(request.getSessionId());
+            throw e;
+        }
     }
 
     /**
@@ -70,7 +78,7 @@ public class KeyExchangeManager {
     public static EncryptedMessage encryptResponse(String response, EncryptedMessage request) {
         DHUtil util = sessionKeyCache.use(request.getSessionId());
         if (util == null) {
-            throw new IllegalArgumentException("Unknown or expired session " + request.getSessionId());
+            throw new IllegalArgumentException("Unknown or expired session");
         }
         byte[] iv = DHUtil.newIv();
 

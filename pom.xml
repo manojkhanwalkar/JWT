@@ -41,7 +41,8 @@
 
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
+            <!-- Only the DynamoDB module is used; the full aws-java-sdk bundle pulled in every AWS service client. -->
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
             <version>${aws.sdk.version}</version>
         </dependency>
 
@@ -119,6 +120,8 @@
             <groupId>org.jsonschema2pojo</groupId>
             <artifactId>jsonschema2pojo-core</artifactId>
             <version>1.3.3</version>
+            <!-- Only used by the test-side PojoGenerator; keep it out of the shipped jar. -->
+            <scope>test</scope>
         </dependency>
 
 

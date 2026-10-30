@@ -38,13 +38,13 @@ public class UserRecord {
         this.userid = userid;
     }
 
-    /** Stored password (plaintext; see the note in UserCreator). */
+    /** Stored password hash (see PasswordHasher). */
     @DynamoDBAttribute(attributeName = "password")
     public String getPassword() {
         return password;
     }
 
-    /** Sets the stored password. */
+    /** Sets the stored password hash. */
     public void setPassword(String password) {
         this.password = password;
     }

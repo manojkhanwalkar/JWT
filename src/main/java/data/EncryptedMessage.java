@@ -15,7 +15,7 @@ public class EncryptedMessage {
 
     private String iv;
 
-    /** Base64 AES/CBC ciphertext. */
+    /** Base64 AES-GCM ciphertext (includes the authentication tag). */
     public String getMessage() {
         return message;
     }

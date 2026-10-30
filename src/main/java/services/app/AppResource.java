@@ -4,8 +4,8 @@
  * REST endpoints of the app (resource) service:
  *   POST /service      Business call protected by a JWT. The token is checked against
  *                      the authorizer's public key.
- *   POST /meta         Size and MD5 checksum of a downloadable file.
- *   POST /chunk        Byte range [start, end) of a downloadable file.
+ *   POST /meta         Size and MD5 checksum of a downloadable file (JWT required).
+ *   POST /chunk        Byte range [start, end) of a downloadable file (JWT required).
  *   POST /keyexchange  Step 1 of ECDHE: trade public keys and get back a session id.
  *   POST /eservice     Step 2 of ECDHE: decrypt the request, upper-case it, and
  *                      return it encrypted.
@@ -23,10 +23,12 @@ import data.FileMetaResponse;
 import data.KeyExchangeRequest;
 import data.KeyExchangeResponse;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.core.MediaType;
 import util.CheckSum;
 import util.Connection;
@@ -64,7 +66,19 @@ public class AppResource {
      * @param filesDirectory directory that /meta and /chunk serve files from
      */
     public AppResource(String filesDirectory) {
+        this(filesDirectory, null);
+    }
+
+    /**
+     * @param filesDirectory directory that /meta and /chunk serve files from
+     * @param verifier       token verifier to use; if null, the authorizer's key is fetched
+     */
+    AppResource(String filesDirectory, JWSVerifyUtil verifier) {
         this.filesDirectory = java.nio.file.Path.of(filesDirectory).toAbsolutePath().normalize();
+        if (verifier != null) {
+            jwsVerifyUtil = verifier;
+            return;
+        }
         try {
             jwsVerifyUtil = fetchVerifier();
         } catch (Exception e) {
@@ -108,7 +122,7 @@ public class AppResource {
     @Timed
     @Path("/service")
     public AppResponse claims(AppRequest request) {
-        if (verifier().verifyJWS(request.getToken())) {
+        if (availableVerifier().verifyJWS(request.getToken())) {
             String payload = request.getDummy() == null ? "" : request.getDummy().toUpperCase();
             return new AppResponse(AppResponse.Status.Valid, payload);
         }
@@ -123,7 +137,7 @@ public class AppResource {
     @Timed
     @Path("/meta")
     public FileMetaResponse fileMeta(FileMetaRequest request) {
-        // TODO - validate the JWT
+        requireValidToken(request.getJwt());
         java.nio.file.Path file = resolve(request.getFileName());
         try {
             long size = Files.size(file);
@@ -148,7 +162,7 @@ public class AppResource {
     @Timed
     @Path("/chunk")
     public ChunkResponse chunk(ChunkRequest request) {
-        // TODO - validate the JWT
+        requireValidToken(request.getJwt());
         java.nio.file.Path file = resolve(request.getFileName());
         if (request.getStart() < 0 || request.getEnd() < request.getStart()) {
             throw new BadRequestException("Invalid range " + request.getStart() + "-" + request.getEnd());
@@ -188,6 +202,25 @@ public class AppResource {
         String requestStr = KeyExchangeManager.decryptRequest(request);
         String responseStr = JSONUtil.toJSON(requestStr.toUpperCase());
         return KeyExchangeManager.encryptResponse(responseStr, request);
+    }
+
+    /** Returns the verifier, or fails the request with 503 if the authorizer's key cannot be fetched (fail closed). */
+    private JWSVerifyUtil availableVerifier() {
+        try {
+            return verifier();
+        } catch (RuntimeException e) {
+            throw new ServiceUnavailableException("Token verification key unavailable");
+        }
+    }
+
+    /**
+     * Rejects the request with 401 unless {@code jwt} is a valid token from the
+     * authorizer, or with 503 if the authorizer's key cannot be fetched (fail closed).
+     */
+    private void requireValidToken(String jwt) {
+        if (!availableVerifier().verifyJWS(jwt)) {
+            throw new NotAuthorizedException("Valid JWT required", "Bearer");
+        }
     }
 
     /**

@@ -13,41 +13,74 @@ import data.LogoutRequest;
 import data.LogoutResponse;
 import data.SessionVerifyRequest;
 import data.SessionVerifyResponse;
+import dynamodb.PasswordHasher;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
 public class LoginManager {
 
+    private static final Logger LOG = LoggerFactory.getLogger(LoginManager.class);
+
     private final UserSessionCache cache = UserSessionCache.getInstance();
+
+    private final LoginThrottle throttle = new LoginThrottle();
 
     private final UserManager manager = UserManager.getInstance();
 
     /**
      * Checks the user id and password. On success it starts a new session and returns
-     * its id. On failure it returns a response with status "failed".
+     * its id. On failure it returns a response with status "failed". After too many
+     * failures the user id is locked out for a while (see LoginThrottle); a locked
+     * account gets the same generic failure response.
      */
     public LoginResponse login(LoginRequest request) {
-        if (manager.validate(request.getUserid(), request.getPassword())) {
+        String userid = request.getUserid();
+        if (!throttle.tryAcquire(userid)) {
+            // Same hashing work as a real check, so response time does not reveal the lock.
+            PasswordHasher.dummyVerify(request.getPassword());
+            LOG.warn("Login rejected for locked-out user '{}'", sanitize(userid));
+        } else if (manager.validate(userid, request.getPassword())) {
+            throttle.recordSuccess(userid);
             String sessionId = UUID.randomUUID().toString();
-            cache.put(request.getUserid(), sessionId);
+            cache.put(userid, sessionId);
             return new LoginResponse(sessionId);
+        } else {
+            LOG.warn("Failed login for user '{}'", sanitize(userid));
         }
         LoginResponse response = new LoginResponse();
         response.setErrorMessage("User login failed");
         return response;
     }
 
-    /** Ends the user's current session. */
+    /**
+     * Ends the user's current session. The caller must present that session id;
+     * a user id alone is not enough, so one user cannot log out another.
+     */
     public LogoutResponse logout(LogoutRequest request) {
-        cache.remove(request.getUserid());
-        return new LogoutResponse(LogoutResponse.Status.sucess);
+        boolean ended = cache.remove(request.getUserid(), request.getSessionId());
+        return new LogoutResponse(ended ? LogoutResponse.Status.sucess : LogoutResponse.Status.failed);
     }
 
     /** Reports whether the given session id is live (logged in and not expired). */
     public SessionVerifyResponse verify(SessionVerifyRequest request) {
-        boolean valid = cache.contains(request.getSessionId());
-        return new SessionVerifyResponse(valid ? SessionVerifyResponse.Status.Valid : SessionVerifyResponse.Status.Invalid,
+        String userid = cache.userFor(request.getSessionId());
+        SessionVerifyResponse response = new SessionVerifyResponse(
+                userid != null ? SessionVerifyResponse.Status.Valid : SessionVerifyResponse.Status.Invalid,
                 request.getSessionId());
+        response.setUserid(userid);
+        return response;
+    }
+
+    /** Strips CR/LF and caps the length so a user id cannot forge log lines. */
+    private static String sanitize(String value) {
+        if (value == null) {
+            return "null";
+        }
+        String clean = value.replaceAll("[\\r\\n\\t]", "_");
+        return clean.length() > 64 ? clean.substring(0, 64) + "..." : clean;
     }
 
     /** Demo: logs in, checks the session, waits past the TTL, and checks it again. Needs local DynamoDB. */

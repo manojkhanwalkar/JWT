@@ -8,7 +8,9 @@
 package services.authorizer;
 
 import io.dropwizard.core.Application;
+import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
+import services.ServiceConfiguration;
 
 public class AuthApplication extends Application<AuthConfiguration> {
 
@@ -21,6 +23,12 @@ public class AuthApplication extends Application<AuthConfiguration> {
     @Override
     public String getName() {
         return "Auth Application";
+    }
+
+    /** Resolves ${ENV_VAR} references (such as the keystore password) in the YAML config. */
+    @Override
+    public void initialize(Bootstrap<AuthConfiguration> bootstrap) {
+        ServiceConfiguration.enableEnvironmentSubstitution(bootstrap);
     }
 
     /** Registers the REST resource with Jersey. */
